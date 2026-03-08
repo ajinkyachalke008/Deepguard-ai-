@@ -146,6 +146,8 @@ Binary classification:
 ✔️ Real Media  
 ❌ AI Generated Media  
 # 🧩 CNN Processing Pipeline :
+
+
 Input Image
 │
 ▼
