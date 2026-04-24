@@ -27,8 +27,8 @@ Advanced AI-Powered Deepfake Detection & Media Forensics Platform
 
 <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
 <img src="https://img.shields.io/badge/React-18+-61DAFB?style=for-the-badge&logo=react&logoColor=black"/>
-<img src="https://img.shields.io/badge/Next.js-Framework-000000?style=for-the-badge&logo=nextdotjs"/>
-<img src="https://img.shields.io/badge/TailwindCSS-UI-38BDF8?style=for-the-badge&logo=tailwindcss"/>
+<img src="https://img.shields.io/badge/Next.js-15%20(App%20Router)-000000?style=for-the-badge&logo=nextdotjs"/>
+<img src="https://img.shields.io/badge/TailwindCSS-v4-38BDF8?style=for-the-badge&logo=tailwindcss"/>
 
 </p>
 
@@ -152,9 +152,12 @@ Instead of relying on a single model, DeepGuard AI uses **multi-layer forensic v
 Signals analyzed include:
 
 🔬 CNN spatial artifact detection  
-📊 Frequency domain anomalies  
-🗂️ Metadata inspection  
-📈 Statistical anomaly scoring  
+📊 Frequency domain anomalies (Spectral Discontinuities)  
+🎞️ Temporal consistency (Temporal Flickering & MSE)  
+🗂️ Metadata & EXIF inspection  
+🔐 Steganographic signal analysis  
+🧾 C2PA / Content Provenance Verification  
+📈 High-fidelity statistical anomaly scoring  
 
 This **multi-signal architecture reduces false positives** and improves reliability.
 
@@ -239,25 +242,33 @@ Binary classification:
 The standard detection pipeline is heavily augmented by our **Web Worker-Driven Real-Time Engines**.
 
 ### 1️⃣ Advanced Batch Processing
-Multiple files can be analyzed asynchronously and rendered in high definition without blocking the main UI thread. In offline mode, the system bypasses external databases and relies on local object URL blob storage to simulate cloud uploads.
+Multiple files can be analyzed asynchronously using **Web Worker parallelism**, preventing UI freezes during heavy forensic scans.
 
-### 2️⃣ Binary Hex & Shannon Entropy Evaluation
-DeepGuard performs **genuine binary analysis** instead of generating mock numbers. 
-* Uses **Web Workers** offloading CPU-intensive Shannon Entropy computation.
-* Calculates 1024-byte block entropy maps to hunt for **polyglot payloads, appended bytes, and encrypted steganography**.
+### 2️⃣ Multi-Signal Diagnostic Suite
+*   **Spectral Engine**: Analyzes frequency distribution for checkerboard artifact patterns endemic to GAN generators.
+*   **Temporal Engine**: Maps Structural Similarity (SSIM) and pixel-delta variance across video timelines.
+*   **Steganography Engine**: Scans for hidden data payloads using Bit-Plane Analysis.
+*   **Entropy Engine**: Real-time Shannon Entropy computation to detect encrypted or anomalous data patterns.
 
-### 3️⃣ Differential Frame Engine (Temporal Analysis)
-Analyzes structural changes mapping SSIM (Structural Similarity) and MSE (Mean Squared Error) between keyframes in video streams, executing completely client-side in the browser.
+### 3️⃣ High-Fidelity Forensic UI
+*   **Pixel Differential Comparator**: Layer-based difference mapping between frames.
+*   **Audio Spectrogram Viewer**: Real-time Fourier analysis of audio streams to detect synthetic pitch shifts.
+*   **Hex-Entropy Visualizer**: 1024-byte block heatmaps of file structure for deep-level bit analysis.
+
+### 4️⃣ Automated Forensic Reporting
+Generates comprehensive PDF reports with cryptographic verification hashes, frame-level evidence, and summarized signal scores for research lab use.
 
 ---
 
 # 🛠️ Technologies Used
 
 ### 🎨 Frontend
-React  
-Next.js  
-Tailwind CSS  
+React 19  
+Next.js 15 (App Router & Turbopack)  
+Tailwind CSS 4  
 Framer Motion  
+Lucide React  
+Radix UI  
 
 ### ⚙️ Backend
 Python  
