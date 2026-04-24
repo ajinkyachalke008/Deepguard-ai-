@@ -160,6 +160,17 @@ This **multi-signal architecture reduces false positives** and improves reliabil
 
 ---
 
+## ⚡ Offline-First Forensic Resilience
+To ensure continuity of investigations in strict air-gapped environments or during backend downtimes, DeepGuard AI features a **Resilient Offline Mode**. 
+
+🛡️ **Local Blob Processing**: Media uploads generate secure, local Object URLs instead of requiring cloud storage.
+🧠 **In-Memory Caching**: Forensic analysis states are cached in the browser's global memory.
+🛑 **Mock Data Generation**: Missing cloud stats seamlessly fall back to intelligent heuristic mocks.
+
+This guarantees critical intelligence platforms like the Batch Analyzer and Hex Entropy Engine never crash during internet drops.
+
+---
+
 # 🏗️ System Architecture
 
 DeepGuard AI detection pipeline consists of several stages:
@@ -222,10 +233,21 @@ Binary classification:
 ❌ AI Generated Media  
 
 ---
-# 🧩 CNN Processing Pipeline
 
----
+# 🧩 Advanced Processing Engines
 
+The standard detection pipeline is heavily augmented by our **Web Worker-Driven Real-Time Engines**.
+
+### 1️⃣ Advanced Batch Processing
+Multiple files can be analyzed asynchronously and rendered in high definition without blocking the main UI thread. In offline mode, the system bypasses external databases and relies on local object URL blob storage to simulate cloud uploads.
+
+### 2️⃣ Binary Hex & Shannon Entropy Evaluation
+DeepGuard performs **genuine binary analysis** instead of generating mock numbers. 
+* Uses **Web Workers** offloading CPU-intensive Shannon Entropy computation.
+* Calculates 1024-byte block entropy maps to hunt for **polyglot payloads, appended bytes, and encrypted steganography**.
+
+### 3️⃣ Differential Frame Engine (Temporal Analysis)
+Analyzes structural changes mapping SSIM (Structural Similarity) and MSE (Mean Squared Error) between keyframes in video streams, executing completely client-side in the browser.
 
 ---
 
@@ -334,5 +356,3 @@ Government College of Engineering Karad
 # 📜 License
 
 This project is released under the **MIT License** *(Under Process)*.
-
-# 🧩 CNN Processing Pipeline

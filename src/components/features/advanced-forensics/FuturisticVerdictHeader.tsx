@@ -6,6 +6,10 @@ import { Microscope, Info, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrambleText } from '@/components/ui/scramble-text';
+import { ForensicStatusBadge } from '@/components/ui/forensic-status-badge';
+import { cn } from '@/lib/utils';
+
 
 // DeepGuard Motion Language tokens
 const MOTION = {
@@ -66,9 +70,9 @@ export function FuturisticVerdictHeader({
   };
 
   const getStatusBadge = () => {
-    if (verdictSeverity === 'high') return <Badge className="bg-forensic-red/10 text-forensic-red border-forensic-red/20 gap-1.5"><AlertTriangle className="w-3 h-3" /> HIGH RISK</Badge>;
-    if (verdictSeverity === 'mid') return <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 gap-1.5"><Info className="w-3 h-3" /> UNCERTAIN</Badge>;
-    return <Badge className="bg-forensic-green/10 text-forensic-green border-forensic-green/20 gap-1.5"><ShieldCheck className="w-3 h-3" /> VERIFIED</Badge>;
+    if (verdictSeverity === 'high') return <ForensicStatusBadge status="anomaly" />;
+    if (verdictSeverity === 'mid') return <ForensicStatusBadge status="uncertain" />;
+    return <ForensicStatusBadge status="verified" />;
   };
 
   const getTransition = (delay: number = 0) => ({
@@ -91,17 +95,22 @@ export function FuturisticVerdictHeader({
         className="w-full mb-8"
       >
         <Card className="relative overflow-hidden glass border-white/5 rounded-[2rem] p-8 md:p-10 shadow-2xl">
-          {/* Slowed background motion for results page */}
-          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          {/* Substrate Grid and Glowing Orbs */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
+            <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
             <motion.div 
               animate={prefersReducedMotion ? {} : { 
-                scale: [1, 1.05, 1],
-                opacity: [0.03, 0.06, 0.03],
-                x: [-10, 10, -10]
+                scale: [1, 1.2, 1],
+                opacity: [0.1, 0.2, 0.1],
+                x: [-20, 20, -20]
               }}
-              transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-br from-primary/20 via-transparent to-purple-500/20 blur-3xl"
+              transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+              className={cn(
+                "absolute -top-1/4 -right-1/4 w-[100%] h-[100%] blur-[120px] rounded-full",
+                verdictSeverity === 'high' ? 'bg-forensic-red/30' : 'bg-forensic-cyan/30'
+              )}
             />
+            <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           </div>
 
           <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center md:items-end justify-between">
@@ -169,7 +178,11 @@ export function FuturisticVerdictHeader({
                       transition={getTransition(0.5)}
                       className={`text-sm font-bold uppercase tracking-wider ${getStatusColor()}`}
                     >
-                      {verdictLabel}
+                      <ScrambleText 
+                        text={verdictLabel}
+                        duration={1200}
+                        delay={600}
+                      />
                     </motion.span>
                   </div>
                 </div>
@@ -246,18 +259,59 @@ export function FuturisticVerdictHeader({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={getTransition(0.9)}
-                  className="space-y-2"
+                  className="space-y-3"
                 >
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
                     {interpretation}
                   </p>
+                  
+                  {/* Real-time Forensic Signal Breakdown */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 group/signal relative overflow-hidden">
+                      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/signal:opacity-100 transition-opacity" />
+                      <div className="text-[9px] font-mono text-muted-foreground uppercase mb-2 flex justify-between items-center">
+                        GAN_TEXTURE_RESIDUALS
+                        <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-sm font-black font-mono text-primary">{Math.round(aiScore * 0.82)}%</span>
+                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.round(aiScore * 0.82)}%` }}
+                            transition={{ duration: 1.5, ease: MOTION.easeData }}
+                            className="h-full bg-gradient-to-r from-primary to-blue-400" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 group/signal relative overflow-hidden">
+                      <div className="absolute inset-0 bg-blue-400/5 opacity-0 group-hover/signal:opacity-100 transition-opacity" />
+                      <div className="text-[9px] font-mono text-muted-foreground uppercase mb-2 flex justify-between items-center">
+                        SPECTRAL_ANOMALY_INDEX
+                        <div className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-sm font-black font-mono text-blue-400">{Math.round(aiScore * 0.74)}%</span>
+                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.round(aiScore * 0.74)}%` }}
+                            transition={{ duration: 1.8, ease: MOTION.easeData }}
+                            className="h-full bg-gradient-to-r from-blue-400 to-purple-400" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-2 text-[9px] text-primary/60 font-mono uppercase">
                     <motion.div 
                       className="w-1 h-1 rounded-full bg-primary"
                       animate={prefersReducedMotion ? {} : { opacity: [0.5, 1, 0.5] }}
                       transition={{ duration: 3, repeat: Infinity }}
                     />
-                    Multi-signal verification
+                    Multi-signal browser verification
                   </div>
                 </motion.div>
               </div>

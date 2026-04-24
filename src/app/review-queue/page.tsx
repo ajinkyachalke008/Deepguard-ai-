@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { listAnalyses } from '@/lib/forensic-analysis';
 
 interface ReviewItem {
   id: string;
@@ -35,6 +36,7 @@ export default function ReviewQueuePage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ReviewStats>({ pending: 0, completed: 0 });
   const [refreshing, setRefreshing] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   const fetchReviewQueue = async () => {
     try {
@@ -111,9 +113,37 @@ export default function ReviewQueuePage() {
         pending: reviewItems.length,
         completed: completedCount?.length || 0
       });
+      setRefreshing(false);
     } catch (err) {
-      console.error('Error fetching review queue:', err);
-      toast.error('Failed to load review queue');
+      console.warn('Review queue DB fetch failed, switching to local buffer:', err);
+      setIsOfflineMode(true);
+      
+      // FALLBACK: Load from local persistent cache
+      try {
+        const localAnalyses = await listAnalyses();
+        const uncertainAnalyses = localAnalyses
+          .filter(a => a.verdict.severity === 'mid')
+          .map(a => ({
+            id: `local_${a.id}`,
+            analysis_id: a.id,
+            fileName: a.fileName,
+            score: a.verdict.score,
+            timestamp: a.createdAt,
+            consensus: 'Local Data',
+            conflictType: 'Uncertain Signal',
+            priority: 'Medium' as const,
+            mediaType: a.mediaType
+          }));
+        
+        setItems(uncertainAnalyses);
+        setStats({
+          pending: uncertainAnalyses.length,
+          completed: 0 // Local stats are reset for simplicity
+        });
+      } catch (localErr) {
+        console.error('Failed to load local review items:', localErr);
+        toast.error('Failed to load review queue');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -240,10 +270,21 @@ export default function ReviewQueuePage() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
-            <Database className="w-3 h-3 text-primary" />
-            LIVE DATABASE
+            {isOfflineMode ? (
+              <>
+                <Clock className="w-3 h-3 text-yellow-500 animate-pulse" />
+                LOCAL BUFFER MODE
+              </>
+            ) : (
+              <>
+                <Database className="w-3 h-3 text-primary" />
+                LIVE DATABASE
+              </>
+            )}
           </div>
-          <Badge variant="outline" className="border-yellow-500/30 text-yellow-500 bg-yellow-500/5">Human Review Queue</Badge>
+          <Badge variant="outline" className={isOfflineMode ? "border-yellow-500/30 text-yellow-500 bg-yellow-500/5" : "border-primary/30 text-primary bg-primary/5"}>
+            {isOfflineMode ? 'Human Review (Local)' : 'Human Review Queue'}
+          </Badge>
         </div>
       </nav>
 

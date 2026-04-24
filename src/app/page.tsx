@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Shield, Search, FileText, Layers } from 'lucide-react';
 import { DeveloperCredit } from '@/components/features/DeveloperCredit';
 import { motion, useReducedMotion } from 'framer-motion';
+import { ScrambleText } from '@/components/ui/scramble-text';
+import { cn } from '@/lib/utils';
 
 // DeepGuard Motion Language tokens
 const MOTION = {
@@ -113,23 +115,24 @@ export default function Home() {
                   </Badge>
                 </motion.div>
 
-                {/* Line-by-line headline reveal */}
-                <div className="overflow-hidden mb-6">
+                {/* Line-by-line headline reveal with Chromatic Fringing */}
+                <div className="overflow-hidden mb-6 relative">
                   <motion.h1 
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={getTransition(MOTION.durationReveal, 0.3)}
-                    className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1]"
+                    className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] relative"
                   >
-                    Detect Deepfakes
+                    <span className="absolute -inset-1 blur-sm text-primary/20 select-none pointer-events-none">Detect Deepfakes</span>
+                    <ScrambleText text="Detect Deepfakes" duration={1800} />
                   </motion.h1>
                   <motion.h1 
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={getTransition(MOTION.durationReveal, 0.42)}
-                    className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] text-primary"
+                    className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-400 to-indigo-500 mt-2"
                   >
-                    Before Damage Occurs
+                    <ScrambleText text="With Certainty" duration={2200} delay={600} />
                   </motion.h1>
                 </div>
 
@@ -210,55 +213,58 @@ export default function Home() {
                   />
                   <div className="scanline" />
                   
-                  <div className="h-full w-full border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-4 text-center relative z-10">
-                    {/* Forensic scan ring */}
-                    <motion.div 
-                      className="w-24 h-24 rounded-full border-2 border-primary/30 flex items-center justify-center relative"
-                      animate={prefersReducedMotion ? {} : { 
-                        scale: [1, 1.03, 1],
-                        opacity: [0.6, 0.9, 0.6],
-                        rotate: [0, 360]
-                      }}
-                      transition={{ 
-                        scale: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
-                        opacity: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
-                        rotate: { duration: 14, repeat: Infinity, ease: 'linear' }
-                      }}
-                    >
-                      <div className="absolute inset-0 rounded-full border border-primary/10" />
-                      <Search className="w-12 h-12 text-primary" />
-                    </motion.div>
-                    
-                    <div>
+                  <div className="h-full w-full border border-white/10 rounded-2xl flex flex-col items-center justify-center gap-6 text-center relative z-10 bg-black/40">
+                    {/* Holographic Tactical HUD */}
+                    <div className="relative">
+                      {/* Rotating Outer Ring */}
                       <motion.div 
-                        className="text-xl font-bold tracking-tight"
-                        animate={prefersReducedMotion ? {} : { opacity: [0.8, 1, 0.8] }}
-                        transition={{ duration: 3, repeat: Infinity }}
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                        className="absolute -inset-8 border-[0.5px] border-dashed border-primary/40 rounded-full"
+                      />
+                      {/* Scanning Reticle */}
+                      <motion.div 
+                        animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.3, 0.6, 0.3] }}
+                        transition={{ duration: 4, repeat: Infinity }}
+                        className="w-32 h-32 rounded-full border-2 border-primary/20 flex items-center justify-center bg-primary/5 shadow-[0_0_40px_rgba(0,255,255,0.1)]"
                       >
-                        Scanning Signals...
+                        <Search className="w-10 h-10 text-primary" />
+                        
+                        {/* Tactical Corners */}
+                        <div className="absolute top-2 left-2 w-3 h-3 border-t border-l border-primary/60" />
+                        <div className="absolute bottom-2 right-2 w-3 h-3 border-b border-r border-primary/60" />
                       </motion.div>
-                      <div className="text-sm text-muted-foreground mt-1 font-mono uppercase tracking-widest opacity-60">GAN texture artifact detection</div>
                     </div>
                     
-                    {/* Progress bars with smooth liquid fill */}
-                    <div className="w-full px-8 space-y-4 mt-6">
+                    <div className="space-y-1">
+                      <motion.div 
+                        className="text-xl font-black font-mono tracking-tighter text-primary"
+                        animate={{ opacity: [0.7, 1, 0.7] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        ISOLATING_SIGNALS
+                      </motion.div>
+                      <div className="text-[9px] text-muted-foreground font-mono uppercase tracking-[0.3em]">Neural Resonance Scan Active</div>
+                    </div>
+                    
+                    {/* Tactical Telemetry Bars */}
+                    <div className="w-full px-10 space-y-3">
                       {[
-                        { width: "85%", delay: 0, label: "Neural Pattern" },
-                        { width: "65%", delay: 0.3, label: "Spectral Analysis" },
-                        { width: "95%", delay: 0.6, label: "Temporal Sync" }
+                        { label: 'GAN_ARTIFACTS', value: '82%', color: 'bg-primary' },
+                        { label: 'SPECTRAL_INDEX', value: '14%', color: 'bg-blue-400' },
+                        { label: 'DIFFUSION_GAP', value: '91%', color: 'bg-indigo-400' }
                       ].map((item, i) => (
                         <div key={i} className="space-y-1">
-                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                          <div className="flex justify-between text-[7px] font-mono text-muted-foreground">
+                            <span>{item.label}</span>
+                            <span>{item.value}</span>
+                          </div>
+                          <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                             <motion.div 
                               initial={{ width: 0 }}
-                              animate={prefersReducedMotion ? { width: item.width } : { width: [0, item.width, "30%", item.width] }}
-                              transition={{ 
-                                duration: prefersReducedMotion ? 0.5 : 4, 
-                                delay: item.delay,
-                                repeat: prefersReducedMotion ? 0 : Infinity,
-                                ease: "easeInOut"
-                              }}
-                              className="h-full bg-gradient-to-r from-primary/60 to-primary/30 rounded-full"
+                              animate={{ width: item.value }}
+                              transition={{ duration: 2, delay: i * 0.2 }}
+                              className={cn("h-full rounded-full", item.color)}
                             />
                           </div>
                         </div>

@@ -5,7 +5,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-      const { fileName, fileSize, fileType, fileUrl } = body;
+      const { 
+        fileName, 
+        fileSize, 
+        fileType, 
+        fileUrl, 
+        entropySample, 
+        thumbnailUrl, 
+        c2paResult,
+        ganScore,
+        spectralScore 
+      } = body;
       
       if (!fileName || !fileSize || !fileType) {
         return NextResponse.json(
@@ -44,7 +54,12 @@ export async function POST(request: NextRequest) {
         fileName,
         fileSize,
         fileType,
-        fileUrl
+        fileUrl,
+        entropySample,
+        thumbnailUrl,
+        c2paResult,
+        ganScore,
+        spectralScore
       });
     
     return NextResponse.json({

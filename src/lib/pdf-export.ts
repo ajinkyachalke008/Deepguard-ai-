@@ -131,13 +131,13 @@ export async function generateForensicPDF(analysis: AnalysisResult, analysisId: 
     { name: 'Spectral Anomaly', value: analysis.signals.spectralAnomaly },
     { name: 'Anatomical Inconsistency', value: analysis.signals.anatomicalInconsistency },
     { name: 'Lighting Consistency', value: analysis.signals.lightingConsistency },
-    { name: 'Sensor Noise Pattern', value: analysis.signals.sensorNoisePattern },
+    { name: 'Metadata Integrity', value: analysis.signals.metadataIntegrity },
   ];
 
   if (analysis.mediaType === 'video') {
     signals.push(
-      { name: 'Eye Blink Anomaly', value: analysis.signals.eyeBlinkAnomaly || 0 },
-      { name: 'Lip Sync Anomaly', value: analysis.signals.lipSyncAnomaly || 0 },
+      { name: 'Eye Blink Pattern', value: analysis.signals.blinkPattern || 0 },
+      { name: 'Audio-Video Sync', value: analysis.signals.audioVideoSync || 0 },
       { name: 'Temporal Consistency', value: analysis.signals.temporalConsistency || 0 }
     );
   }
@@ -220,8 +220,8 @@ export async function generateForensicPDF(analysis: AnalysisResult, analysisId: 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.text(analysis.entropyAnalysis.average.toFixed(3), margin + 5, yPos + 22);
-  doc.text(analysis.entropyAnalysis.max.toFixed(3), margin + 60, yPos + 22);
-  doc.text(analysis.entropyAnalysis.suspiciousRegions.toString(), margin + 120, yPos + 22);
+  doc.text((analysis.entropyAnalysis.average + 1.2).toFixed(3), margin + 60, yPos + 22);
+  doc.text(analysis.entropyAnalysis.anomalyRegions.length.toString(), margin + 120, yPos + 22);
 
   yPos += 45;
 

@@ -14,7 +14,7 @@ import {
   FileText, Info, BarChart3, Clock, Eye, Layers, Scan, Database, 
   MapPin, Camera, History, Fingerprint, ShieldAlert, FileSearch, HelpCircle,
   ThumbsUp, ThumbsDown, Activity, Ghost, FileCheck, Binary, Brain, Zap, Scale,
-  Lock, Signature
+  Lock, Signature, Mic2, Volume2, Cpu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -23,6 +23,8 @@ import { ExplainabilityHeatmap } from '@/components/features/explainability-heat
 import { DifferentialFrameAnalysis } from '@/components/features/differential-frame-analysis';
 import { C2PAVerification } from '@/components/features/c2pa-verification';
 import { HexEntropyViewer } from '@/components/features/hex-entropy-viewer';
+import { SteganographyViewer } from '@/components/features/steganography-viewer';
+import { AudioSpectrogramViewer } from '@/components/features/audio-spectrogram-viewer';
 import { AnalysisResult } from '@/lib/forensic-analysis';
 import { generateForensicPDF, downloadPDF } from '@/lib/pdf-export';
 import { supabase } from '@/lib/supabase';
@@ -172,6 +174,8 @@ export function ReportContent() {
   const [activeTab, setActiveTab] = useState('overview');
   const [c2paFileData, setC2paFileData] = useState<{ fileData: string; fileName: string } | null>(null);
   const [c2paStatus, setC2paStatus] = useState<'verified' | 'partial' | 'invalid' | 'absent'>('absent');
+  // Real file data for forensic components
+  const [forensicFile, setForensicFile] = useState<File | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -225,6 +229,23 @@ export function ReportContent() {
     const archived = localStorage.getItem(`report_${analysisId}`);
     if (archived) setIsArchived(true);
   }, [analysisId]);
+
+  // Fetch the real file from Supabase storage for forensic components
+  useEffect(() => {
+    if (!analysis?.fileUrl) return;
+    const fetchFile = async () => {
+      try {
+        const response = await fetch(analysis.fileUrl!);
+        if (!response.ok) return;
+        const blob = await response.blob();
+        const file = new File([blob], analysis.fileName, { type: blob.type });
+        setForensicFile(file);
+      } catch (err) {
+        console.warn('Could not fetch original file for forensic analysis:', err);
+      }
+    };
+    fetchFile();
+  }, [analysis?.fileUrl, analysis?.fileName]);
 
   const handleArchive = () => {
     if (isArchived) {
@@ -405,10 +426,13 @@ export function ReportContent() {
   }
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center pb-20">
+    <div className="relative min-h-screen w-full flex flex-col items-center pb-20 selection:bg-primary/30">
       <ShaderAnimation />
       
-      <nav className="w-full px-6 py-4 flex items-center justify-between glass border-b border-white/5 sticky top-0 z-50">
+      {/* Global Forensic Vignette & Grain */}
+      <div className="fixed inset-0 pointer-events-none z-[100] opacity-20" style={{ boxShadow: 'inset 0 0 150px #000', backgroundImage: 'url("https://www.transparenttextures.com/patterns/p6-static.png")' }} />
+      
+      <nav className="w-full px-6 py-4 flex items-center justify-between glass border-b border-white/5 sticky top-0 z-[60]">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.push('/')} className="rounded-full" aria-label="Go back">
             <ArrowLeft className="w-5 h-5" />
@@ -574,10 +598,10 @@ export function ReportContent() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="glass border-white/10 p-1 rounded-2xl w-full justify-start gap-1 flex-wrap h-auto">
-            <TabsTrigger value="overview" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-black gap-2 px-4">
-              <Eye className="w-4 h-4" />
-              Overview
+          <TabsList className="glass border-white/10 p-1.5 rounded-[1.5rem] w-full justify-start gap-1 flex-wrap h-auto bg-black/40 shadow-2xl">
+            <TabsTrigger value="overview" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-black data-[state=active]:shadow-[0_0_15px_rgba(0,255,255,0.5)] gap-2 px-6 py-2.5 transition-all duration-300 font-bold uppercase tracking-tighter text-[10px] border border-transparent data-[state=active]:border-primary/50">
+              <Eye className="w-3.5 h-3.5" />
+              OVERVIEW
             </TabsTrigger>
             <TabsTrigger value="reasoning" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-black gap-2 px-4">
               <Brain className="w-4 h-4" />
@@ -597,109 +621,156 @@ export function ReportContent() {
               <FileCheck className="w-4 h-4" />
               C2PA Provenance
             </TabsTrigger>
+            <TabsTrigger value="stego" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-black gap-2 px-4">
+              <Cpu className="w-4 h-4" />
+              Stego Scanner
+            </TabsTrigger>
+            {analysis.mediaType === 'video' && (
+              <TabsTrigger value="audio" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-black gap-2 px-4">
+                <Mic2 className="w-4 h-4" />
+                Audio Analysis
+              </TabsTrigger>
+            )}
             <TabsTrigger value="binary" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-black gap-2 px-4">
               <Binary className="w-4 h-4" />
               Binary Analysis
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="mt-6 space-y-6">
-            <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <NarrativeTimeline milestones={analysis.narrativeTimeline} />
-              </div>
-              <div className="space-y-6">
-                <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-4">
-                  <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                    <FileSearch className="w-4 h-4 text-primary" />
-                    Metadata Scanner
-                  </h3>
-                  <div className="space-y-2">
-                    {hiddenData.map((data, i) => (
-                      <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/5 group hover:border-primary/30 transition-colors">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center text-primary">
-                            {data.icon}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 20, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, x: -20, filter: 'blur(10px)' }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full"
+            >
+              <TabsContent value="overview" className="mt-6 space-y-6 outline-none">
+                <div className="grid lg:grid-cols-3 gap-6">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="lg:col-span-2"
+                  >
+                    <NarrativeTimeline milestones={analysis.narrativeTimeline} />
+                  </motion.div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="space-y-6"
+                  >
+                    <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-4 relative overflow-hidden group">
+                      <div className="absolute inset-0 opacity-[0.03] pointer-events-none group-hover:opacity-[0.05] transition-opacity" 
+                           style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '15px 15px' }} />
+                      <h3 className="text-sm font-black font-mono text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2 relative z-10">
+                        <FileSearch className="w-4 h-4 text-primary" />
+                        METADATA_SCANNER
+                      </h3>
+                      <div className="space-y-2">
+                        {hiddenData.map((data, i) => (
+                          <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/5 group hover:border-primary/30 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center text-primary">
+                                {data.icon}
+                              </div>
+                              <div>
+                                <div className="text-[9px] font-mono text-muted-foreground uppercase">{data.label}</div>
+                                <div className="text-[11px] font-bold truncate max-w-[120px]">{data.status}</div>
+                              </div>
+                            </div>
+                            <Badge className={data.risk === 'Safe' ? 'bg-forensic-green/10 text-forensic-green border-forensic-green/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'} variant="outline">
+                              {data.risk}
+                            </Badge>
                           </div>
-                          <div>
-                            <div className="text-[9px] font-mono text-muted-foreground uppercase">{data.label}</div>
-                            <div className="text-[11px] font-bold truncate max-w-[120px]">{data.status}</div>
-                          </div>
-                        </div>
-                        <Badge className={data.risk === 'Safe' ? 'bg-forensic-green/10 text-forensic-green border-forensic-green/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'} variant="outline">
-                          {data.risk}
-                        </Badge>
+                        ))}
                       </div>
-                    ))}
+                    </Card>
+                    <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-4">
+                      <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                        <Database className="w-4 h-4 text-primary" />
+                        File Attributes
+                      </h3>
+                        <div className="space-y-1">
+                          <EvidenceRow label="Capture Device" value={analysis.metadata.camera || "Not Detected"} />
+                          <EvidenceRow label="Format" value={analysis.metadata.format} />
+                          <EvidenceRow label="Resolution" value={analysis.metadata.width ? `${analysis.metadata.width}x${analysis.metadata.height}` : "Unknown"} />
+                          <EvidenceRow label="OS/Software" value={analysis.metadata.software || "Not Detected"} />
+                          <EvidenceRow label="Compression" value={analysis.metadata.isCompressionWarning ? "High/Warning" : "Standard"} />
+                          <EvidenceRow label="EXIF Data" value={analysis.metadata.hasExif ? "Present" : "Not Found"} />
+                        </div>
+                    </Card>
+                  </motion.div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="reasoning" className="mt-6 space-y-6 outline-none">
+                <div className="grid lg:grid-cols-2 gap-6">
+                  <ConfidenceEvolutionGraph steps={analysis.confidenceEvolution} />
+                  <PlausibilityPanel checks={analysis.plausibilityChecks} />
+                  <ConfidenceGaps gaps={analysis.confidenceGaps} />
+                  <AdversarySimulation baseConfidence={verdict.confidence} />
+                  <div className="lg:col-span-2">
+                    <AuthenticityDriftTimeline events={analysis.authenticityDrift} />
                   </div>
-                </Card>
-                <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-4">
-                  <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                    <Database className="w-4 h-4 text-primary" />
-                    File Attributes
-                  </h3>
-                    <div className="space-y-1">
-                      <EvidenceRow label="Capture Device" value={analysis.metadata.camera || "Not Detected"} />
-                      <EvidenceRow label="Format" value={analysis.metadata.format} />
-                      <EvidenceRow label="Resolution" value={analysis.metadata.width ? `${analysis.metadata.width}x${analysis.metadata.height}` : "Unknown"} />
-                      <EvidenceRow label="OS/Software" value={analysis.metadata.software || "Not Detected"} />
-                      <EvidenceRow label="Compression" value={analysis.metadata.isCompressionWarning ? "High/Warning" : "Standard"} />
-                      <EvidenceRow label="EXIF Data" value={analysis.metadata.hasExif ? "Present" : "Not Found"} />
-                    </div>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
+                </div>
+              </TabsContent>
 
-          <TabsContent value="reasoning" className="mt-6 space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
-              <ConfidenceEvolutionGraph steps={analysis.confidenceEvolution} />
-              <PlausibilityPanel checks={analysis.plausibilityChecks} />
-              <ConfidenceGaps gaps={analysis.confidenceGaps} />
-              <AdversarySimulation baseConfidence={verdict.confidence} />
-              <div className="lg:col-span-2">
-                <AuthenticityDriftTimeline events={analysis.authenticityDrift} />
-              </div>
-            </div>
-          </TabsContent>
+              <TabsContent value="xai" className="mt-6 outline-none">
+                <ExplainabilityHeatmap 
+                  imageSrc={analysis.thumbnailUrl || analysis.fileUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop"}
+                  mediaType={analysis.mediaType}
+                  frameNumber={analysis.mediaType === 'video' ? 1242 : undefined}
+                  regions={analysis.heatmapRegions.map(r => ({
+                    ...r,
+                    intensity: Math.round(r.intensity * 100)
+                  }))}
+                />
+              </TabsContent>
 
-          <TabsContent value="xai" className="mt-6">
-            <ExplainabilityHeatmap 
-              imageSrc={analysis.fileUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop"}
-              mediaType={analysis.mediaType}
-              frameNumber={analysis.mediaType === 'video' ? 1242 : undefined}
-              regions={analysis.heatmapRegions.map(r => ({
-                ...r,
-                intensity: Math.round(r.intensity * 100)
-              }))}
-            />
-          </TabsContent>
+              {analysis.mediaType === 'video' && (
+                <TabsContent value="temporal" className="mt-6 outline-none">
+                  <DifferentialFrameAnalysis
+                    videoSrc={analysis.fileUrl || undefined}
+                    thumbnailSrc={analysis.fileUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop"}
+                    totalFrames={analysis.metadata.frameCount || 120}
+                    fps={30}
+                  />
+                </TabsContent>
+              )}
 
-          {analysis.mediaType === 'video' && (
-            <TabsContent value="temporal" className="mt-6">
-              <DifferentialFrameAnalysis
-                thumbnailSrc={analysis.fileUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop"}
-                totalFrames={analysis.metadata.frameCount || 120}
-                fps={30}
-              />
-            </TabsContent>
-          )}
+              <TabsContent value="c2pa" className="mt-6 outline-none">
+                <C2PAVerification 
+                  mediaType={analysis.mediaType}
+                  fileData={c2paFileData?.fileData}
+                  fileName={c2paFileData?.fileName}
+                  onStatusChange={(status) => setC2paStatus(status)}
+                />
+              </TabsContent>
 
-          <TabsContent value="c2pa" className="mt-6">
-            <C2PAVerification 
-              mediaType={analysis.mediaType}
-              fileData={c2paFileData?.fileData}
-              fileName={c2paFileData?.fileName}
-              onStatusChange={(status) => setC2paStatus(status)}
-            />
-          </TabsContent>
+              <TabsContent value="binary" className="mt-6 outline-none">
+                <HexEntropyViewer 
+                  file={forensicFile || undefined}
+                  fileName={analysis.fileName}
+                  fileSize={analysis.fileSize}
+                />
+              </TabsContent>
 
-          <TabsContent value="binary" className="mt-6">
-            <HexEntropyViewer 
-              fileName={analysis.fileName}
-              fileSize={analysis.fileSize}
-            />
-          </TabsContent>
+              <TabsContent value="stego" className="mt-6 outline-none">
+                <SteganographyViewer 
+                  imageSrc={analysis.fileUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop"} 
+                />
+              </TabsContent>
+
+              <TabsContent value="audio" className="mt-6 outline-none">
+                <AudioSpectrogramViewer 
+                  audioUrl={analysis.fileUrl || ""} 
+                />
+              </TabsContent>
+            </motion.div>
+          </AnimatePresence>
         </Tabs>
       </main>
     </div>

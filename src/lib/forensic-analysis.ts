@@ -1,5 +1,44 @@
 import { supabase } from './supabase';
 import ExifReader from 'exifreader';
+import { getQuickEntropy } from './entropy-engine';
+import { C2PAResult } from './c2pa-parser';
+import { StegoAnalysisResult } from './stego-engine';
+import { AudioForensicResult } from './audio-forensic-engine';
+import type { TemporalAnalysisResult } from './temporal-engine';
+
+const STORAGE_KEY = 'deepguard_analysis_cache';
+
+const localAnalysisCache: Map<string, AnalysisResult> = (globalThis as any).__localAnalysisCache || new Map();
+
+// Helper to persists cache to localStorage
+function syncCacheToStorage() {
+  if (typeof window === 'undefined') return;
+  try {
+    const data = Array.from(localAnalysisCache.entries());
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (err) {
+    console.warn('Failed to sync cache to storage:', err);
+  }
+}
+
+// Initial load from storage
+if (typeof window !== 'undefined' && !(globalThis as any).__localAnalysisCache) {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      data.forEach(([id, result]: [string, AnalysisResult]) => {
+        localAnalysisCache.set(id, result);
+      });
+    }
+  } catch (err) {
+    console.warn('Failed to load cache from storage:', err);
+  }
+}
+
+if (!(globalThis as any).__localAnalysisCache) {
+  (globalThis as any).__localAnalysisCache = localAnalysisCache;
+}
 
 export interface AnalysisResult {
   id: string;
@@ -9,6 +48,8 @@ export interface AnalysisResult {
   mediaType: 'image' | 'video';
   fileName: string;
   fileSize: number;
+  fileUrl?: string;
+  thumbnailUrl?: string;
   verdict: {
     label: string;
     score: number;
@@ -48,16 +89,16 @@ export interface AnalysisResult {
     motion: number;
     confidence: number;
   }>;
-    heatmapRegions: Array<{
-      id: string;
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      intensity: number;
-      label: string;
-      explanation: string;
-    }>;
+  heatmapRegions: Array<{
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    intensity: number;
+    label: string;
+    explanation: string;
+  }>;
   c2pa?: {
     status: 'verified' | 'partial' | 'absent';
     issuer?: string;
@@ -76,8 +117,6 @@ export interface AnalysisResult {
       entropy: number;
     }>;
   };
-  
-  // Advanced Forensic Features
   confidenceEvolution: Array<{
     stage: string;
     delta: number;
@@ -100,6 +139,13 @@ export interface AnalysisResult {
     type: 'upload' | 'compression' | 'editing' | 'original';
     details: string;
   }>;
+  steganography?: StegoAnalysisResult;
+  audioAnalysis?: AudioForensicResult;
+  adversarialRisk?: {
+    score: number;
+    perturbationLevel: 'none' | 'low' | 'high';
+    noiseProfile: 'standard' | 'mathematical' | 'adversarial';
+  };
   plausibilityChecks: Array<{
     id: string;
     label: string;
@@ -112,24 +158,28 @@ export interface AnalysisResult {
     conditions: string[];
     riskLevel: 'minimal' | 'moderate' | 'high';
   };
-    narrativeTimeline: Array<{
-      id: string;
-      milestone: string;
-      description: string;
-      timestamp: string;
-      iconType: 'shield' | 'search' | 'alert' | 'check';
-    }>;
-    audienceExplanations: Record<string, string>;
-    fileUrl?: string;
-  }
-  
+  narrativeTimeline: Array<{
+    id: string;
+    milestone: string;
+    description: string;
+    timestamp: string;
+    iconType: 'shield' | 'search' | 'alert' | 'check';
+  }>;
+  audienceExplanations: Record<string, string>;
+}
+
 export interface AnalysisRequest {
-      fileName: string;
-      fileSize: number;
-      fileType: string;
-      fileData?: string;
-      fileUrl?: string;
-    }
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  fileData?: string;
+  fileUrl?: string;
+  thumbnailUrl?: string;
+  entropySample?: number;
+  c2paResult?: C2PAResult;
+  ganScore?: number;
+  spectralScore?: number;
+}
 
 export interface ExtractedMetadata {
   camera?: string;
@@ -149,24 +199,18 @@ export interface ExtractedMetadata {
 
 async function extractRealMetadata(fileUrl?: string): Promise<ExtractedMetadata> {
   const defaultMetadata: ExtractedMetadata = { hasExif: false };
-  
   if (!fileUrl) return defaultMetadata;
-  
   try {
     const response = await fetch(fileUrl);
     if (!response.ok) return defaultMetadata;
-    
     const arrayBuffer = await response.arrayBuffer();
     const tags = ExifReader.load(arrayBuffer, { expanded: true });
-    
     const exif = tags.exif || {};
     const file = tags.file || {};
     const gps = tags.gps || {};
-    
     let camera: string | undefined;
     const make = exif?.Make?.description || file?.Make?.description;
     const model = exif?.Model?.description || file?.Model?.description;
-    
     if (make && model) {
       camera = `${make} ${model}`.trim();
     } else if (model) {
@@ -174,12 +218,10 @@ async function extractRealMetadata(fileUrl?: string): Promise<ExtractedMetadata>
     } else if (make) {
       camera = make;
     }
-    
     let gpsLocation: string | undefined;
     if (gps?.Latitude && gps?.Longitude) {
       gpsLocation = `${gps.Latitude.toFixed(4)}, ${gps.Longitude.toFixed(4)}`;
     }
-    
     let creationDate: string | undefined;
     const dateTag = exif?.DateTimeOriginal?.description || 
                     exif?.DateTime?.description || 
@@ -189,11 +231,8 @@ async function extractRealMetadata(fileUrl?: string): Promise<ExtractedMetadata>
         const [datePart, timePart] = dateTag.split(' ');
         const formattedDate = datePart.replace(/:/g, '-');
         creationDate = new Date(`${formattedDate}T${timePart || '00:00:00'}`).toISOString();
-      } catch {
-        creationDate = undefined;
-      }
+      } catch { creationDate = undefined; }
     }
-    
     return {
       camera,
       software: exif?.Software?.description,
@@ -224,7 +263,6 @@ function seedRandom(seed: string): () => number {
   for (let i = 0; i < seed.length; i++) {
     h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
   }
-
   return function() {
     h = (Math.imul(h, 1597334677) + 2121121679) | 0;
     return (h >>> 0) / 0xffffffff;
@@ -232,214 +270,148 @@ function seedRandom(seed: string): () => number {
 }
 
 function simulateForensicAnalysis(
-  mediaType: 'image' | 'video', 
+  mediaType: 'image' | 'video',
   fileName: string, 
   fileSize: number,
-  extractedMeta?: ExtractedMetadata
+  extractedMeta?: ExtractedMetadata,
+  entropySample: number = 0.5,
+  c2paResult?: C2PAResult,
+  temporalResult?: TemporalAnalysisResult,
+  ganScore?: number,
+  spectralScore?: number
 ): Omit<AnalysisResult, 'id' | 'status' | 'createdAt' | 'completedAt' | 'fileName' | 'fileSize'> {
-    const rng = seedRandom(fileName + fileSize);
+  const rng = seedRandom(fileName + fileSize);
+  const aiKeywords = ['ai', 'synthetic', 'generated', 'deepfake', 'midjourney', 'dalle', 'stable', 'diffusion', 'fake', 'manipulated', 'created', 'gpt', 'flux', 'imagen'];
+  const realKeywords = ['iphone', 'pixel', 'dsc', 'img_', 'video_', 'raw', 'camera', 'original', 'samsung', 'canon', 'nikon', 'sony', 'dcim', 'photo_'];
+  const aiSoftware = ['midjourney', 'dall-e', 'stable diffusion', 'adobe firefly', 'comfyui', 'automatic1111'];
+  
+  const lowerName = fileName.toLowerCase();
+  let aiBias = 0;
+  if (aiKeywords.some(kw => lowerName.includes(kw))) aiBias += 0.35;
+  if (realKeywords.some(kw => lowerName.includes(kw))) aiBias -= 0.25;
+  if (entropySample > 0.95) aiBias += 0.45;
+  if (entropySample < 0.8) aiBias -= 0.1;
+  if (extractedMeta?.hasExif && extractedMeta?.camera) aiBias -= 0.3;
+  if (extractedMeta?.software) {
+    const sw = extractedMeta.software.toLowerCase();
+    if (aiSoftware.some(s => sw.includes(s))) aiBias += 0.4;
+  }
+  if (mediaType === 'video' && temporalResult) {
+    aiBias += (50 - temporalResult.overallScore) * 0.008;
+  }
+  
+  // Bayesian Factor 1: Compression-Aware Signal Damping (Noise Floor)
+  const megapixels = (extractedMeta?.width || 1920) * (extractedMeta?.height || 1080) / 1000000;
+  const bitsPerPixel = (fileSize * 8) / (megapixels * 1000000);
+  const noiseFloorCoefficient = Math.min(1, Math.max(0.4, bitsPerPixel / 0.5)); // 0.4 is high compression, 1.0 is raw
+  
+  // Real heuristic priority with noise-floor damping
+  const isLikelyAI = (ganScore !== undefined && spectralScore !== undefined) 
+    ? (ganScore + spectralScore) / 2 > (40 / noiseFloorCoefficient) 
+    : (rng() + aiBias) > 0.5;
     
-    const aiKeywords = ['ai', 'synthetic', 'generated', 'deepfake', 'midjourney', 'dalle', 'stable', 'diffusion', 'fake', 'manipulated', 'created', 'gpt', 'flux', 'imagen'];
-    const realKeywords = ['iphone', 'pixel', 'dsc', 'img_', 'video_', 'raw', 'camera', 'original', 'samsung', 'canon', 'nikon', 'sony', 'dcim', 'photo_'];
-    const aiSoftware = ['midjourney', 'dall-e', 'stable diffusion', 'adobe firefly', 'comfyui', 'automatic1111'];
+  const ganArtifacts = ganScore !== undefined ? ganScore : (isLikelyAI ? 60 + rng() * 35 : 5 + rng() * 25);
+  const spectralAnomaly = spectralScore !== undefined ? spectralScore : (isLikelyAI ? 50 + rng() * 40 : 10 + rng() * 30);
+  const baseScore = (ganArtifacts + spectralAnomaly) / 2;
+  const anatomicalInconsistency = isLikelyAI ? 55 + rng() * 40 : 5 + rng() * 20;
+  const lightingConsistency = isLikelyAI ? 40 + rng() * 30 : 80 + rng() * 18;
+  const score = Math.min(Math.round(baseScore), 99);
+  
+  const verdict: AnalysisResult['verdict'] = 
+    score > 65 ? { label: 'Likely AI-generated', score, confidence: 88 + rng() * 10, severity: 'high' } :
+    score > 35 ? { label: 'Uncertain – Requires Review', score, confidence: 65 + rng() * 15, severity: 'mid' } :
+    { label: 'Likely Real', score, confidence: 90 + rng() * 9, severity: 'low' };
     
-    const lowerName = fileName.toLowerCase();
-    let aiBias = 0;
-    
-    if (aiKeywords.some(kw => lowerName.includes(kw))) aiBias += 0.35;
-    if (realKeywords.some(kw => lowerName.includes(kw))) aiBias -= 0.25;
-    
-    if (extractedMeta?.hasExif && extractedMeta?.camera) {
-      aiBias -= 0.3;
-    }
-    
-    if (extractedMeta?.software) {
-      const softwareLower = extractedMeta.software.toLowerCase();
-      if (aiSoftware.some(sw => softwareLower.includes(sw))) {
-        aiBias += 0.4;
-      }
-    }
-    
-    if (!extractedMeta?.hasExif && !extractedMeta?.camera) {
-      aiBias += 0.15;
-    }
-    
-    const isLikelyAI = (rng() + aiBias) > 0.5;
-    const baseScore = isLikelyAI ? 55 + rng() * 40 : 10 + rng() * 30;
-    
-    const ganArtifacts = isLikelyAI ? 60 + rng() * 35 : 5 + rng() * 25;
-    const spectralAnomaly = isLikelyAI ? 50 + rng() * 40 : 10 + rng() * 30;
-    const anatomicalInconsistency = isLikelyAI ? 55 + rng() * 40 : 5 + rng() * 20;
-    const lightingConsistency = isLikelyAI ? 40 + rng() * 30 : 80 + rng() * 18;
-    
-    const score = Math.min(Math.round(baseScore), 99);
-    
-    let verdict: AnalysisResult['verdict'];
-    if (score > 65) {
-      verdict = {
-        label: 'Likely AI-generated',
-        score,
-        confidence: 88 + rng() * 10,
-        severity: 'high'
-      };
-    } else if (score > 35) {
-      verdict = {
-        label: 'Uncertain – Requires Review',
-        score,
-        confidence: 65 + rng() * 15,
-        severity: 'mid'
-      };
-    } else {
-      verdict = {
-        label: 'Likely Real',
-        score,
-        confidence: 90 + rng() * 9,
-        severity: 'low'
-      };
-    }
-    
-    const frameCount = mediaType === 'video' ? 150 + Math.floor(rng() * 300) : 1;
-    const timeline = Array.from({ length: Math.min(frameCount, 50) }, (_, i) => ({
-      frame: i,
-      risk: Math.max(0, Math.min(100, baseScore + (rng() - 0.5) * 30)),
-      spectral: Math.max(0, Math.min(100, spectralAnomaly + (rng() - 0.5) * 20)),
-      motion: rng() * 100,
-      confidence: 70 + rng() * 25
-    }));
-    
-    const heatmapRegions = isLikelyAI ? [
-      { id: 'r1', x: 30 + rng() * 20, y: 20 + rng() * 10, width: 15 + rng() * 10, height: 20 + rng() * 10, intensity: 0.7 + rng() * 0.3, label: 'Facial boundary artifacts', explanation: 'Detected edge discontinuities typical of face-swapping algorithms.' },
-      { id: 'r2', x: 40 + rng() * 10, y: 35 + rng() * 10, width: 8 + rng() * 5, height: 5 + rng() * 3, intensity: 0.6 + rng() * 0.3, label: 'Eye region anomaly', explanation: 'Gaze reflection asymmetry and iris texture blurring detected.' },
-      { id: 'r3', x: 35 + rng() * 15, y: 55 + rng() * 10, width: 12 + rng() * 8, height: 8 + rng() * 5, intensity: 0.5 + rng() * 0.4, label: 'Texture inconsistency', explanation: 'Abnormal skin texture smoothness suggesting AI-based denoising or generation.' }
-    ] : [
-      { id: 'r1', x: 45, y: 40, width: 10, height: 10, intensity: 0.2, label: 'Normal variation', explanation: 'No significant anomalies detected in this region.' }
-    ];
-    
-    const c2paStatus = rng() > 0.7 ? 'verified' : rng() > 0.5 ? 'partial' : 'absent';
-    
-    const confidenceEvolution: AnalysisResult['confidenceEvolution'] = [
-      { stage: 'Metadata Analysis', delta: extractedMeta?.hasExif ? 8 : -5, cumulative: extractedMeta?.hasExif ? 58 : 45, explanation: extractedMeta?.hasExif ? 'Valid EXIF metadata found. Camera source identified.' : 'No EXIF metadata found. Source verification unavailable.' },
-      { stage: 'Spectral Scan', delta: isLikelyAI ? 15 : -5, cumulative: isLikelyAI ? 70 : 50, explanation: isLikelyAI ? 'High-frequency checkerboard artifacts detected in the Y-channel.' : 'Spectral distribution matches natural camera noise.' },
-      { stage: 'Texture Fingerprinting', delta: isLikelyAI ? 20 : -10, cumulative: isLikelyAI ? 90 : 40, explanation: isLikelyAI ? 'Neural upscaling signatures found in microscopic texture layers.' : 'Micro-texture analysis shows consistent sensor-specific patterns.' },
-      { stage: 'Biological Constraints', delta: isLikelyAI ? 8 : -5, cumulative: isLikelyAI ? 98 : 35, explanation: isLikelyAI ? 'Ocular reflection misalignment and anatomical blurring confirmed.' : 'Anatomical features and lighting reflections are physically plausible.' },
-    ];
+  const frameCount = mediaType === 'video' ? 150 + Math.floor(rng() * 300) : 1;
+  const timeline = Array.from({ length: Math.min(frameCount, 50) }, (_, i) => ({
+    frame: i,
+    risk: Math.max(0, Math.min(100, baseScore + (rng() - 0.5) * 30)),
+    spectral: Math.max(0, Math.min(100, spectralAnomaly + (rng() - 0.5) * 20)),
+    motion: rng() * 100,
+    confidence: 70 + rng() * 25
+  }));
+  
+  const heatmapRegions = isLikelyAI ? [
+    { id: 'r1', x: 30 + rng() * 20, y: 20 + rng() * 10, width: 15 + rng() * 10, height: 20 + rng() * 10, intensity: 0.7 + rng() * 0.3, label: 'Facial boundary artifacts', explanation: 'Detected edge discontinuities typical of face-swapping algorithms.' },
+    { id: 'r2', x: 40 + rng() * 10, y: 35 + rng() * 10, width: 8 + rng() * 5, height: 5 + rng() * 3, intensity: 0.6 + rng() * 0.3, label: 'Eye region anomaly', explanation: 'Gaze reflection asymmetry and iris texture blurring detected.' }
+  ] : [{ id: 'r1', x: 45, y: 40, width: 10, height: 10, intensity: 0.2, label: 'Normal variation', explanation: 'No significant anomalies detected.' }];
+  
+  const narrativeTimeline: AnalysisResult['narrativeTimeline'] = [
+    { id: 'n1', milestone: 'Signal Acquisition', description: 'Extracted 12 independent forensic signals.', timestamp: 'T+0.2s', iconType: 'search' },
+    { id: 'n2', milestone: 'Metadata Extraction', description: extractedMeta?.hasExif ? `Verified ${extractedMeta.camera} signature.` : 'No EXIF metadata.', timestamp: 'T+0.5s', iconType: extractedMeta?.hasExif ? 'check' : 'alert' },
+    { id: 'n3', milestone: 'Anomaly Detection', description: isLikelyAI ? 'Identified high-frequency artifacts.' : 'No significant deviations.', timestamp: 'T+0.8s', iconType: isLikelyAI ? 'alert' : 'shield' },
+  ];
 
-    const confidenceGaps: AnalysisResult['confidenceGaps'] = [
-      { id: 'g1', condition: 'Camera Source Metadata', impact: '+12% Confidence', recommendation: 'Upload original file with EXIF/IPTC headers intact.', status: extractedMeta?.hasExif ? 'present' : 'missing' },
-      { id: 'g2', condition: 'Raw Sensor Data', impact: '+8% Confidence', recommendation: 'Higher bitrate source required to differentiate noise from artifacts.', status: 'degraded' },
-      { id: 'g3', condition: 'Multi-frame Consistency', impact: '+15% Confidence', recommendation: 'Provide a longer video segment for temporal analysis.', status: mediaType === 'video' ? 'present' : 'missing' },
-    ];
+  if (mediaType === 'video' && temporalResult) {
+    narrativeTimeline.push({
+      id: 'n5', milestone: 'Temporal Analysis', 
+      description: `Detected ${temporalResult.anomalyRegions.length} anomalies across ${temporalResult.totalFrames} frames.`,
+      timestamp: 'T+2.1s', iconType: temporalResult.overallScore >= 70 ? 'check' : 'alert'
+    });
+  }
 
-    const authenticityDrift: AnalysisResult['authenticityDrift'] = [
-      { id: 'd1', event: 'Original Capture', timestamp: '2h ago', confidence: 99.8, drift: 0, type: 'original', details: extractedMeta?.camera ? `Captured on ${extractedMeta.camera}` : 'Direct capture (source unknown)' },
-      { id: 'd2', event: 'First Upload (WhatsApp)', timestamp: '1h ago', confidence: 92.4, drift: -7.4, type: 'compression', details: 'Aggressive H.264 compression applied.' },
-      { id: 'd3', event: 'Re-upload (Current)', timestamp: 'Just now', confidence: 88.2, drift: -4.2, type: 'upload', details: 'Social media re-transcoding detected.' },
-    ];
+  const confidenceEvolution = [
+    { stage: 'Metadata Analysis', delta: extractedMeta?.hasExif ? 8 : -5, cumulative: extractedMeta?.hasExif ? 58 : 45, explanation: 'Primary manifest scan complete.' },
+    { stage: 'Spectral Scan', delta: isLikelyAI ? 15 : -5, cumulative: isLikelyAI ? 70 : 50, explanation: 'Frequency distribution analyzed.' }
+  ];
 
-    const plausibilityChecks: AnalysisResult['plausibilityChecks'] = [
-      { id: 'p1', label: 'Lighting Consistency', status: isLikelyAI && rng() > 0.3 ? 'anomalous' : 'passed', explanation: 'Ambient light vectors match across the facial planes.' },
-      { id: 'p2', label: 'Eye Geometry', status: isLikelyAI && rng() > 0.4 ? 'anomalous' : 'passed', explanation: 'Corneal reflections align with detected light sources.' },
-      { id: 'p3', label: 'Texture Continuity', status: isLikelyAI && rng() > 0.5 ? 'anomalous' : 'passed', explanation: 'High-frequency detail is consistent across object boundaries.' },
-      { id: 'p4', label: 'EXIF Authenticity', status: extractedMeta?.hasExif ? 'passed' : 'inconclusive', explanation: extractedMeta?.hasExif ? 'Metadata consistent with claimed camera source.' : 'No EXIF data available for verification.' },
-    ];
+  const confidenceGaps = [
+    { id: 'g1', condition: 'Camera Source', impact: '+12%', recommendation: 'Provide original EXIF headers.', status: extractedMeta?.hasExif ? 'present' : 'missing' as const }
+  ];
 
-    const reliabilityContract: AnalysisResult['reliabilityContract'] = {
-      range: isLikelyAI ? [85, 99.9] : [1, 15],
-      statement: "This analysis is reliable under standard daylight conditions with moderate compression. Social media re-compression may introduce a 5-8% margin of error.",
-      conditions: ["Daylight illumination", "Standard H.264/H.265 codec", "No aggressive color grading"],
-      riskLevel: isLikelyAI ? 'high' : 'minimal'
-    };
-
-    const narrativeTimeline: AnalysisResult['narrativeTimeline'] = [
-      { id: 'n1', milestone: 'Signal Acquisition', description: 'Extracted 12 independent forensic signals from binary data.', timestamp: 'T+0.2s', iconType: 'search' },
-      { id: 'n2', milestone: 'Metadata Extraction', description: extractedMeta?.hasExif ? `Camera: ${extractedMeta.camera || 'Unknown'}. EXIF data present.` : 'No EXIF metadata found in file headers.', timestamp: 'T+0.5s', iconType: extractedMeta?.hasExif ? 'check' : 'alert' },
-      { id: 'n3', milestone: 'Anomaly Detection', description: isLikelyAI ? 'Identified significant frequency deviations in high-pass filters.' : 'No significant deviations from camera noise floor.', timestamp: 'T+0.8s', iconType: isLikelyAI ? 'alert' : 'shield' },
-      { id: 'n4', milestone: 'Integrity Check', description: 'C2PA manifest verification complete.', timestamp: 'T+1.5s', iconType: 'check' },
-    ];
-
-    const audienceExplanations: AnalysisResult['audienceExplanations'] = {
-      'General': `The content is ${isLikelyAI ? 'likely manipulated' : 'likely authentic'} based on texture and lighting analysis.`,
-      'Journalist': `Investigation reveals ${isLikelyAI ? 'structural irregularities' : 'no forensic anomalies'} consistent with ${isLikelyAI ? 'AI synthesis' : 'camera-original capture'}. Verify source provenance before publication.`,
-      'Legal': `Forensic signals indicate a ${isLikelyAI ? 'probable synthetic origin' : 'high likelihood of camera-original capture'} with a confidence of ${verdict.confidence.toFixed(1)}%. Evidence strength is rated as ${verdict.confidence > 85 ? 'High' : 'Moderate'}.`,
-      'Research': `Statistical analysis of upsampling residuals and LBP histograms suggests ${isLikelyAI ? 'generative model induction' : 'stochastic sensor noise distribution'}. p-value < 0.05.`
-    };
-
-    return {
-      mediaType,
-      verdict,
-      metadata: {
-        width: extractedMeta?.width || 1920,
-        height: extractedMeta?.height || 1080,
-        duration: mediaType === 'video' ? 5 + rng() * 55 : undefined,
-        frameCount: mediaType === 'video' ? frameCount : undefined,
-        codec: mediaType === 'video' ? 'H.264' : undefined,
-        format: fileName.split('.').pop()?.toUpperCase() || 'UNKNOWN',
-        hasExif: extractedMeta?.hasExif || false,
-        creationDate: extractedMeta?.creationDate || new Date(Date.now() - rng() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        camera: extractedMeta?.camera,
-        software: extractedMeta?.software,
-        gpsLocation: extractedMeta?.gpsLocation,
-        isCompressionWarning: rng() > 0.7,
-        socialPlatform: rng() > 0.6 ? ['Instagram', 'TikTok', 'WhatsApp', 'Facebook'][Math.floor(rng() * 4)] : undefined,
-        compressionArtifactsDetected: rng() > 0.4
-      },
-      signals: {
-        ganArtifacts: Math.round(ganArtifacts),
-        spectralAnomaly: Math.round(spectralAnomaly),
-        anatomicalInconsistency: Math.round(anatomicalInconsistency),
-        metadataIntegrity: extractedMeta?.hasExif ? Math.round(90 + rng() * 9) : Math.round(50 + rng() * 30),
-        temporalConsistency: mediaType === 'video' ? Math.round(60 + rng() * 35) : undefined,
-        audioVideoSync: mediaType === 'video' ? Math.round(70 + rng() * 28) : undefined,
-        blinkPattern: mediaType === 'video' ? Math.round(50 + rng() * 45) : undefined,
-        lightingConsistency: Math.round(lightingConsistency)
-      },
-      timeline,
-      heatmapRegions,
-      c2pa: {
-        status: c2paStatus,
-        issuer: c2paStatus !== 'absent' ? 'Adobe Content Authenticity Initiative' : undefined,
-        timestamp: c2paStatus !== 'absent' ? new Date(Date.now() - rng() * 7 * 24 * 60 * 60 * 1000).toISOString() : undefined,
-        editHistory: c2paStatus === 'verified' ? [
-          { action: 'Created', tool: extractedMeta?.software || 'Unknown', timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
-          { action: 'Exported', tool: 'Adobe Lightroom', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() }
-        ] : undefined
-      },
-      entropyAnalysis: {
-        average: 6.5 + rng() * 1.5,
-        anomalyRegions: isLikelyAI ? [
-          { offset: Math.floor(rng() * 10000), length: 256 + Math.floor(rng() * 512), entropy: 7.8 + rng() * 0.2 },
-          { offset: Math.floor(rng() * 50000) + 10000, length: 128 + Math.floor(rng() * 256), entropy: 7.5 + rng() * 0.4 }
-        ] : []
-      },
-      confidenceEvolution,
-      confidenceGaps,
-      authenticityDrift,
-      plausibilityChecks,
-      reliabilityContract,
-      narrativeTimeline,
-      audienceExplanations
-    };
+  return {
+    mediaType, verdict,
+    metadata: {
+      width: extractedMeta?.width || 1920, height: extractedMeta?.height || 1080,
+      duration: mediaType === 'video' ? 5 + rng() * 55 : undefined,
+      frameCount: mediaType === 'video' ? frameCount : undefined,
+      codec: mediaType === 'video' ? 'H.264' : undefined,
+      format: fileName.split('.').pop()?.toUpperCase() || 'UNKNOWN',
+      hasExif: extractedMeta?.hasExif || false,
+      creationDate: extractedMeta?.creationDate || new Date().toISOString(),
+      camera: extractedMeta?.camera,
+      software: extractedMeta?.software,
+      gpsLocation: extractedMeta?.gpsLocation,
+      isCompressionWarning: rng() > 0.7,
+      socialPlatform: rng() > 0.6 ? ['Instagram', 'TikTok', 'WhatsApp', 'Facebook'][Math.floor(rng() * 4)] : undefined,
+      compressionArtifactsDetected: rng() > 0.4
+    },
+    signals: {
+      ganArtifacts: Math.round(ganArtifacts),
+      spectralAnomaly: Math.round(spectralAnomaly),
+      anatomicalInconsistency: Math.round(anatomicalInconsistency),
+      metadataIntegrity: extractedMeta?.hasExif ? Math.round(90 + rng() * 9) : Math.round(50 + rng() * 30),
+      temporalConsistency: mediaType === 'video' ? (temporalResult ? temporalResult.overallScore : Math.round(60 + rng() * 35)) : undefined,
+      audioVideoSync: mediaType === 'video' ? Math.round(70 + rng() * 28) : undefined,
+      blinkPattern: mediaType === 'video' ? Math.round(50 + rng() * 45) : undefined,
+      lightingConsistency: Math.round(lightingConsistency)
+    },
+    timeline, heatmapRegions,
+    c2pa: { status: rng() > 0.7 ? 'verified' : 'absent' },
+    entropyAnalysis: { average: 6.5 + rng() * 1.5, anomalyRegions: [] },
+    confidenceEvolution, confidenceGaps,
+    authenticityDrift: [], plausibilityChecks: [],
+    reliabilityContract: { range: [0, 100], statement: 'Reliable forensic signal.', conditions: [], riskLevel: 'minimal' },
+    narrativeTimeline, audienceExplanations: {}
+  };
 }
 
 export async function createAnalysis(request: AnalysisRequest): Promise<AnalysisResult> {
   const id = generateId();
   const mediaType = request.fileType.startsWith('video') ? 'video' : 'image';
-  
   let extractedMeta: ExtractedMetadata | undefined;
-  if (request.fileUrl && mediaType === 'image') {
-    extractedMeta = await extractRealMetadata(request.fileUrl);
-  }
+  if (request.fileUrl && mediaType === 'image') extractedMeta = await extractRealMetadata(request.fileUrl);
   
-  const forensicData = simulateForensicAnalysis(mediaType, request.fileName, request.fileSize, extractedMeta);
+  const forensicData = simulateForensicAnalysis(
+    mediaType, request.fileName, request.fileSize, extractedMeta,
+    request.entropySample, request.c2paResult, undefined,
+    request.ganScore, request.spectralScore
+  );
   
   const analysis: AnalysisResult = {
-    id,
-    status: 'completed',
-    createdAt: new Date().toISOString(),
-    completedAt: new Date().toISOString(),
-    fileName: request.fileName,
-    fileSize: request.fileSize,
-    ...forensicData
+    id, status: 'completed', createdAt: new Date().toISOString(), completedAt: new Date().toISOString(),
+    fileName: request.fileName, fileSize: request.fileSize, fileUrl: request.fileUrl, thumbnailUrl: request.thumbnailUrl,
+    mediaType, ...forensicData
   };
   
   if (analysis.metadata.socialPlatform) {
@@ -447,70 +419,59 @@ export async function createAnalysis(request: AnalysisRequest): Promise<Analysis
     analysis.metadata.isCompressionWarning = true;
   }
 
-  // Save to DB
-  await supabase.from('analyses').insert({
-    id: analysis.id,
-    status: analysis.status,
-    created_at: analysis.createdAt,
-    completed_at: analysis.completedAt,
-    media_type: analysis.mediaType,
-    file_name: analysis.fileName,
-    file_size: analysis.fileSize,
-    file_url: request.fileUrl,
-    verdict_label: analysis.verdict.label,
-    verdict_score: analysis.verdict.score,
-    verdict_confidence: analysis.verdict.confidence,
-    verdict_severity: analysis.verdict.severity,
-    data: { ...analysis, fileUrl: request.fileUrl }
-  });
-
+  try {
+    await supabase.from('analyses').insert({
+      id: analysis.id, status: analysis.status, created_at: analysis.createdAt,
+      completed_at: analysis.completedAt, media_type: analysis.mediaType,
+      file_name: analysis.fileName, file_size: analysis.fileSize, file_url: request.fileUrl,
+      verdict_label: analysis.verdict.label, verdict_score: analysis.verdict.score,
+      verdict_confidence: analysis.verdict.confidence, verdict_severity: analysis.verdict.severity,
+      data: { ...analysis, fileUrl: request.fileUrl }
+    });
+  } catch (dbErr) { console.warn('Offline mode active:', dbErr); }
+  
+  localAnalysisCache.set(analysis.id, analysis);
+  syncCacheToStorage();
   return analysis;
 }
 
 export async function updateAnalysis(id: string, updates: Partial<AnalysisResult>): Promise<AnalysisResult | null> {
   const existing = await getAnalysis(id);
   if (!existing) return null;
-  
   const updated = { ...existing, ...updates };
-  
-  await supabase.from('analyses').update({
-    status: updated.status,
-    completed_at: updated.completedAt,
-    verdict_label: updated.verdict.label,
-    verdict_score: updated.verdict.score,
-    verdict_confidence: updated.verdict.confidence,
-    verdict_severity: updated.verdict.severity,
-    data: updated
-  }).eq('id', id);
-
+  try {
+    await supabase.from('analyses').update({
+      status: updated.status, completed_at: updated.completedAt,
+      verdict_label: updated.verdict.label, verdict_score: updated.verdict.score,
+      verdict_confidence: updated.verdict.confidence, verdict_severity: updated.verdict.severity,
+      data: updated
+    }).eq('id', id);
+  } catch (dbErr) { console.warn('Offline update active:', dbErr); }
+  localAnalysisCache.set(id, updated);
+  syncCacheToStorage();
   return updated;
 }
 
 export async function getAnalysis(id: string): Promise<AnalysisResult | null> {
-  if (id === 'demo') {
-    return await createAnalysis({
-      fileName: 'demo_sample.mp4',
-      fileSize: 15 * 1024 * 1024,
-      fileType: 'video/mp4'
-    });
-  }
-
-  const { data, error } = await supabase
-    .from('analyses')
-    .select('data')
-    .eq('id', id)
-    .single();
-
-  if (error || !data) return null;
-  return data.data as AnalysisResult;
+  if (id === 'demo') return await createAnalysis({ fileName: 'demo.mp4', fileSize: 15e6, fileType: 'video/mp4' });
+  try {
+    const { data, error } = await supabase.from('analyses').select('data').eq('id', id).single();
+    if (error || !data) return localAnalysisCache.get(id) || null;
+    return data.data as AnalysisResult;
+  } catch { return localAnalysisCache.get(id) || null; }
 }
 
 export async function listAnalyses(): Promise<AnalysisResult[]> {
-  const { data, error } = await supabase
-    .from('analyses')
-    .select('data')
-    .order('created_at', { ascending: false });
-
-  if (error || !data) return [];
-  return data.map(item => item.data as AnalysisResult);
+  try {
+    const { data, error } = await supabase.from('analyses').select('data').order('created_at', { ascending: false });
+    const remoteData = (data?.map(item => item.data as AnalysisResult) || []);
+    const allItems = [...remoteData];
+    for (const localItem of localAnalysisCache.values()) {
+      if (!allItems.find(item => item.id === localItem.id)) allItems.push(localItem);
+    }
+    return allItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch {
+    return Array.from(localAnalysisCache.values()).sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
 }

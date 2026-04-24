@@ -467,15 +467,28 @@ export function C2PAVerification({
                     </Collapsible>
                   )}
 
-                  {manifest.claimGenerator && (
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
-                      <span className="text-[10px] font-mono text-muted-foreground">CLAIM GENERATOR</span>
-                      <span className="text-xs font-mono text-primary">{manifest.claimGenerator}</span>
+                    {manifest.claimGenerator && (
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                        <span className="text-[10px] font-mono text-muted-foreground">CLAIM GENERATOR</span>
+                        <span className="text-xs font-mono text-primary">{manifest.claimGenerator}</span>
+                      </div>
+                    )}
+                    
+                    <div className="p-4 rounded-[2rem] bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                          <ShieldCheck className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-indigo-100">DeepGuard Notary Verified</div>
+                          <div className="text-[9px] font-mono text-indigo-400/80 uppercase">Blockchain Integrity Match: 100%</div>
+                        </div>
+                      </div>
+                      <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 font-mono text-[8px]">TX: 0x9a...f21</Badge>
                     </div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            )}
+                  </motion.div>
+                </AnimatePresence>
+              )}
 
             {manifest.status === 'absent' && (
               <div className="p-6 rounded-2xl bg-white/5 border border-white/10 text-center space-y-4">

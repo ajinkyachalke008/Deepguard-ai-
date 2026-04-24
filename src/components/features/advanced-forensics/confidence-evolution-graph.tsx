@@ -46,74 +46,100 @@ export function ConfidenceEvolutionGraph({ steps }: ConfidenceEvolutionGraphProp
           ))}
         </div>
 
-        {/* Connection Lines (SVG) */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
-          <motion.polyline
+        {/* Connection Lines (SVG) - Solid Liquid Path */}
+        <svg className="absolute inset-x-0 bottom-12 w-full h-[150px] pointer-events-none overflow-visible">
+          <defs>
+            <linearGradient id="glow-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#00f2ff" />
+              <stop offset="50%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#a855f7" />
+            </linearGradient>
+            <filter id="path-glow">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+          
+          <motion.path
             fill="none"
-            stroke="url(#gradient-line)"
-            strokeWidth="2"
-            strokeDasharray="4 4"
-            points={steps.map((step, i) => {
+            stroke="url(#glow-gradient)"
+            strokeWidth="3"
+            filter="url(#path-glow)"
+            d={steps.reduce((acc, step, i) => {
               const x = (i / (steps.length - 1)) * 100;
               const y = 100 - step.cumulative;
-              return `${x}% ${y}%`;
-            }).join(' ')}
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 2, ease: "easeInOut" }}
+              return i === 0 ? `M 0,${y}%` : `${acc} L ${x}%,${y}%`;
+            }, "")}
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 1 }}
+            transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }} 
           />
-          <defs>
-            <linearGradient id="gradient-line" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#a855f7" stopOpacity="0.5" />
-            </linearGradient>
-          </defs>
         </svg>
+
+        {/* Dynamic Global Scanline Scan */}
+        <motion.div 
+          initial={{ left: "-10%" }}
+          animate={{ left: "110%" }}
+          transition={{ duration: 2.5, ease: "easeInOut" }}
+          className="absolute inset-y-0 w-[50px] bg-gradient-to-r from-transparent via-primary/10 to-transparent z-20 pointer-events-none"
+        />
 
         {/* Data Nodes */}
         {steps.map((step, i) => (
           <div 
             key={i} 
-            className="relative z-10 flex flex-col items-center group"
+            className="relative z-30 flex flex-col items-center group"
             style={{ width: `${100 / steps.length}%` }}
           >
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: i * 0.2 }}
+                    initial={{ scale: 0, opacity: 0, y: 10 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.15 + 0.5, type: 'spring', stiffness: 200 }}
                     className="relative cursor-help"
                     style={{ marginBottom: `${step.cumulative * 1.5}px` }}
                   >
-                    <div className="w-4 h-4 rounded-full bg-background border-2 border-primary group-hover:scale-125 transition-transform" />
                     <motion.div 
-                      className="absolute inset-0 rounded-full bg-primary/20 blur-sm"
-                      animate={{ scale: [1, 1.5, 1] }}
-                      transition={{ repeat: Infinity, duration: 2 }}
+                      className="w-4 h-4 rounded-full bg-background border-2 border-primary group-hover:scale-150 transition-transform relative z-10"
+                      animate={{ scale: [1, 1.05, 1] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
+                    />
+                    <motion.div 
+                      className="absolute inset-0 rounded-full bg-primary/40 blur-md"
+                      animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0.6, 0.3] }}
+                      transition={{ repeat: Infinity, duration: 3, delay: i * 0.2 }}
                     />
                   </motion.div>
                 </TooltipTrigger>
-                <TooltipContent className="glass border-white/10 p-3 max-w-xs">
+                <TooltipContent className="glass border-white/10 p-3 max-w-xs shadow-2xl backdrop-blur-xl">
                   <div className="space-y-1.5">
-                    <div className="text-[10px] font-bold uppercase text-primary">{step.stage}</div>
-                    <p className="text-[11px] leading-tight text-muted-foreground">{step.explanation}</p>
-                    <div className="flex items-center gap-2 pt-1 border-t border-white/5 mt-1">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-primary flex justify-between">
+                      {step.stage}
+                      <span className="opacity-50">T+{(i * 0.4).toFixed(1)}s</span>
+                    </div>
+                    <p className="text-[11px] leading-tight text-muted-foreground font-medium">{step.explanation}</p>
+                    <div className="flex items-center gap-2 pt-2 border-t border-white/10 mt-1">
                       <div className={`flex items-center gap-0.5 text-[10px] font-bold ${step.delta >= 0 ? 'text-forensic-green' : 'text-forensic-red'}`}>
                         {step.delta >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                         {step.delta >= 0 ? '+' : ''}{step.delta}%
                       </div>
-                      <div className="text-[10px] text-muted-foreground font-mono">Total: {step.cumulative}%</div>
+                      <div className="text-[10px] text-muted-foreground font-mono bg-white/5 px-2 rounded-full">CONF: {step.cumulative}%</div>
                     </div>
                   </div>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
             
-            <div className="text-[9px] font-mono text-muted-foreground mt-2 rotate-[-45deg] origin-top-left translate-x-2">
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.15 + 0.8 }}
+              className="text-[9px] font-bold font-mono text-muted-foreground mt-4 rotate-[-45deg] origin-top-left translate-x-2 group-hover:text-primary transition-colors"
+            >
               {step.stage.split(' ')[0]}
-            </div>
+            </motion.div>
           </div>
         ))}
       </div>
