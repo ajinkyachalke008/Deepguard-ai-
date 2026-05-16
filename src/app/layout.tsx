@@ -14,26 +14,33 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const enableRemoteScripts = process.env.NEXT_PUBLIC_ENABLE_REMOTE_SCRIPTS === "true";
+  const safeTargetOrigin =
+    process.env.NEXT_PUBLIC_ROUTE_MESSAGE_TARGET_ORIGIN || "https://deepguard-ai.vercel.app";
   return (
     <html lang="en">
       <body className="antialiased">
-        <Script
-          id="orchids-browser-logs"
-          src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts/orchids-browser-logs.js"
-          strategy="afterInteractive"
-          data-orchids-project-id="6c3364f5-94ad-49db-8735-b7496573e16e"
-        />
+        {enableRemoteScripts && (
+          <Script
+            id="orchids-browser-logs"
+            src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts/orchids-browser-logs.js"
+            strategy="afterInteractive"
+            data-orchids-project-id="6c3364f5-94ad-49db-8735-b7496573e16e"
+          />
+        )}
         <ErrorReporter />
-        <Script
-          src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
-          strategy="afterInteractive"
-          data-target-origin="*"
-          data-message-type="ROUTE_CHANGE"
-          data-include-search-params="true"
-          data-only-in-iframe="true"
-          data-debug="true"
-          data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
-        />
+        {enableRemoteScripts && (
+          <Script
+            src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
+            strategy="afterInteractive"
+            data-target-origin={safeTargetOrigin}
+            data-message-type="ROUTE_CHANGE"
+            data-include-search-params="true"
+            data-only-in-iframe="true"
+            data-debug="false"
+            data-custom-data='{"appName": "DeepGuard AI", "version": "1.0.0"}'
+          />
+        )}
         {children}
         <VisualEditsMessenger />
       </body>

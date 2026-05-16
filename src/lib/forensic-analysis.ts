@@ -166,6 +166,24 @@ export interface AnalysisResult {
     iconType: 'shield' | 'search' | 'alert' | 'check';
   }>;
   audienceExplanations: Record<string, string>;
+  aiInterpretation?: {
+    model: string;
+    generatedAt: string;
+    verdict: {
+      label: string;
+      score: number;
+      confidence: number;
+      explanation?: string;
+    };
+    signals: {
+      ganArtifacts: number;
+      spectralAnomaly: number;
+      anatomicalInconsistency: number;
+      lightingConsistency: number;
+    };
+    findings: Array<{ location: string; issue: string; confidence: number }>;
+    audienceExplanations: Record<string, string>;
+  };
 }
 
 export interface AnalysisRequest {

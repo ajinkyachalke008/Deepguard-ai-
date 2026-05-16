@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { chatCompletion } from '@/lib/openrouter';
 import { updateAnalysis } from '@/lib/forensic-analysis';
+import { z } from 'zod';
+import { requireAnalystKey, rateLimit } from '@/lib/api-security';
+import { AIAnalyzeSchema } from '@/lib/api-validation';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { imageUrl, base64Image, fileName, fileType, analysisId } = body;
-
-    if (!imageUrl && !base64Image) {
-      return NextResponse.json(
-        { error: 'Missing image data (imageUrl or base64Image)' },
-        { status: 400 }
-      );
-    }
+    const authFail = requireAnalystKey(request);
+    if (authFail) return authFail;
+    const limited = rateLimit(request, 'api:analyze:ai', 12, 60_000);
+    if (limited) return limited;
+    const body = AIAnalyzeSchema.parse(await request.json());
+    const { imageUrl, base64Image, fileType, analysisId } = body;
 
     const imageSource = imageUrl || `data:${fileType || 'image/jpeg'};base64,${base64Image}`;
 
@@ -64,23 +64,17 @@ export async function POST(request: NextRequest) {
     const cleanedResponse = response.replace(/```json\n?|```/g, '').trim();
     const aiResult = JSON.parse(cleanedResponse);
 
-      // If analysisId is provided, update the store
+      // If analysisId is provided, store AI interpretation separately from measured signals
       if (analysisId) {
         await updateAnalysis(analysisId, {
-          verdict: {
-            label: aiResult.verdict.label,
-            score: aiResult.verdict.score,
-            confidence: aiResult.verdict.confidence,
-            severity: aiResult.verdict.score > 65 ? 'high' : aiResult.verdict.score > 35 ? 'mid' : 'low'
-          },
-          signals: {
-            ganArtifacts: aiResult.signals.ganArtifacts,
-            spectralAnomaly: aiResult.signals.spectralAnomaly,
-            anatomicalInconsistency: aiResult.signals.anatomicalInconsistency,
-            metadataIntegrity: 85, // Default
-            lightingConsistency: aiResult.signals.lightingConsistency
-          },
-          audienceExplanations: aiResult.audienceExplanations
+          aiInterpretation: {
+            model: 'openai/gpt-4o-mini',
+            generatedAt: new Date().toISOString(),
+            verdict: aiResult.verdict,
+            signals: aiResult.signals,
+            findings: aiResult.findings || [],
+            audienceExplanations: aiResult.audienceExplanations || {}
+          }
         });
       }
 
@@ -92,8 +86,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('AI Analysis error:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid request', details: error.issues }, { status: 400 });
+    }
     return NextResponse.json(
-      { error: 'Failed to process AI analysis', details: error instanceof Error ? error.message : String(error) },
+      { error: 'Failed to process AI analysis' },
       { status: 500 }
     );
   }

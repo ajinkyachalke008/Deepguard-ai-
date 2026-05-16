@@ -15,6 +15,8 @@ export interface AudioForensicResult {
   spectralClipping: number; // 0 to 1
   silenceFloor: number; // dB
   harmonicVariance: number;
+  experimental: boolean;
+  provenance: 'simulated' | 'measured';
 }
 
 /**
@@ -31,7 +33,9 @@ export async function analyzeAudioBuffer(buffer: AudioBuffer): Promise<AudioFore
         syntheticProbability: 0.12, // Default low
         spectralClipping: 0.05,
         silenceFloor: -92, // dB (normal room noise)
-        harmonicVariance: 0.85
+        harmonicVariance: 0.85,
+        experimental: true,
+        provenance: 'simulated'
       });
     }, 1500);
   });
