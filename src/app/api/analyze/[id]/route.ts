@@ -1,5 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAnalysis, updateAnalysis } from '@/lib/forensic-analysis';
+import { z } from 'zod';
+import { requireAnalystKey, rateLimit } from '@/lib/api-security';
+
+const PatchSchema = z.object({
+  audienceExplanations: z.record(z.string(), z.string()).optional(),
+  aiInterpretation: z.object({
+    model: z.string(),
+    generatedAt: z.string(),
+    verdict: z.object({
+      label: z.string(),
+      score: z.number().min(0).max(100),
+      confidence: z.number().min(0).max(100),
+      explanation: z.string().optional(),
+    }),
+    signals: z.object({
+      ganArtifacts: z.number().min(0).max(100),
+      spectralAnomaly: z.number().min(0).max(100),
+      anatomicalInconsistency: z.number().min(0).max(100),
+      lightingConsistency: z.number().min(0).max(100),
+    }),
+    findings: z.array(z.object({
+      location: z.string(),
+      issue: z.string(),
+      confidence: z.number().min(0).max(100),
+    })),
+    audienceExplanations: z.record(z.string(), z.string()),
+  }).optional(),
+  status: z.enum(['pending', 'processing', 'completed', 'failed']).optional(),
+  completedAt: z.string().optional()
+}).strict();
 
 export async function GET(
   request: NextRequest,
@@ -43,8 +73,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authFail = requireAnalystKey(request);
+    if (authFail) return authFail;
+    const limited = rateLimit(request, 'api:analyze:patch', 30, 60_000);
+    if (limited) return limited;
     const { id } = await params;
-    const body = await request.json();
+    const body = PatchSchema.parse(await request.json());
     
     if (!id) {
       return NextResponse.json(
@@ -70,6 +104,9 @@ export async function PATCH(
     
   } catch (error) {
     console.error('Update analysis error:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid request', details: error.issues }, { status: 400 });
+    }
     return NextResponse.json(
       { error: 'Failed to update analysis' },
       { status: 500 }

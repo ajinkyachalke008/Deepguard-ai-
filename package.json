@@ -6,7 +6,9 @@
         "dev": "next dev --turbopack",
         "build": "next build",
         "start": "next start",
-        "lint": "next lint"
+        "lint": "next lint",
+        "test:api-integration": "node scripts/api-integration-tests.mjs",
+        "review:reconcile": "node scripts/review-reconciliation-helper.mjs"
     },
     "dependencies": {
         "@babel/parser": "^7.28.5",

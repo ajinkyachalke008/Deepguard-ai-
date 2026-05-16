@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAnalysis, listAnalyses } from '@/lib/forensic-analysis';
+import { z } from 'zod';
+import { rateLimit } from '@/lib/api-security';
+import { CreateAnalysisSchema } from '@/lib/api-validation';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const limited = rateLimit(request, 'api:analyze:post', 20, 60_000);
+    if (limited) return limited;
+    const body = CreateAnalysisSchema.parse(await request.json());
     
       const { 
         fileName, 
@@ -42,14 +47,6 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      const maxSize = 200 * 1024 * 1024;
-      if (fileSize > maxSize) {
-        return NextResponse.json(
-          { error: 'File too large. Maximum size is 200MB' },
-          { status: 400 }
-        );
-      }
-      
       const result = await createAnalysis({
         fileName,
         fileSize,
@@ -69,6 +66,9 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('Analysis error:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid request', details: error.issues }, { status: 400 });
+    }
     return NextResponse.json(
       { error: 'Failed to process analysis request' },
       { status: 500 }

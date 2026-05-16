@@ -17,6 +17,7 @@ import { analyzeTemporalConsistency } from '@/lib/temporal-engine';
 import { ScrambleText } from '@/components/ui/scramble-text';
 import { detectGanArtifacts } from '@/lib/gan-engine';
 import { analyzeSpectralAnomalies } from '@/lib/spectral-engine';
+import { stringToSeed } from '@/lib/deterministic-rng';
 
 // DeepGuard Motion Language tokens
 const MOTION = {
@@ -294,8 +295,9 @@ export default function AnalyzePage() {
         img.src = URL.createObjectURL(file);
         await new Promise((resolve) => { img.onload = resolve; });
         
+        const deterministicSeed = stringToSeed(`${file.name}:${file.size}:${file.lastModified}`);
         [ganResult, spectralResult] = await Promise.all([
-          detectGanArtifacts(img),
+          detectGanArtifacts(img, { seed: deterministicSeed }),
           analyzeSpectralAnomalies(img)
         ]);
         
@@ -1074,5 +1076,4 @@ function LogLine({ text, delay }: { text: string; delay: number }) {
     </motion.div>
   );
 }
-
 

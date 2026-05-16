@@ -12,10 +12,17 @@ export interface GANAnalysisResult {
   detectedPatterns: string[];
 }
 
+export interface GANAnalysisOptions {
+  seed?: number;
+}
+
 /**
  * Detects GAN-specific artifacts using high-pass filtering and local variance analysis.
  */
-export async function detectGanArtifacts(imageElement: HTMLImageElement | HTMLCanvasElement): Promise<GANAnalysisResult> {
+export async function detectGanArtifacts(
+  imageElement: HTMLImageElement | HTMLCanvasElement,
+  options: GANAnalysisOptions = {}
+): Promise<GANAnalysisResult> {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   
@@ -45,6 +52,7 @@ export async function detectGanArtifacts(imageElement: HTMLImageElement | HTMLCa
   const anomalies: Array<{x: number, y: number, intensity: number}> = [];
 
   // Simple Laplacian: [0, -1, 0, -1, 4, -1, 0, -1, 0]
+  const seededRng = mulberry32(options.seed ?? 1337);
   for (let y = 1; y < canvas.height - 1; y++) {
     for (let x = 1; x < canvas.width - 1; x++) {
       const idx = y * canvas.width + x;
@@ -59,7 +67,7 @@ export async function detectGanArtifacts(imageElement: HTMLImageElement | HTMLCa
       // Look for repetitive high-frequency energy (GAN signature)
       if (highPass[idx] > 45) {
         totalVariance += highPass[idx];
-        if (rng() > 0.95) { // Sample anomalies for UI
+        if (seededRng() > 0.95) { // Deterministic sample anomalies for UI
           anomalies.push({
             x: (x / canvas.width) * 100,
             y: (y / canvas.height) * 100,
@@ -81,9 +89,4 @@ export async function detectGanArtifacts(imageElement: HTMLImageElement | HTMLCa
   };
 }
 
-/**
- * Deterministic RNG for seeded forensic consistency
- */
-function rng() {
-  return Math.random();
-}
+import { mulberry32 } from './deterministic-rng';
