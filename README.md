@@ -517,4 +517,4 @@ STAGE 8: REPORT GENERATION
 <details>
 <summary><b>Backend & Database</b></summary>
 
-| Package | Ver
+| Package | Vercel
