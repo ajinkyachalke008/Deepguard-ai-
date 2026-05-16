@@ -1,13 +1,13 @@
 import { jsPDF } from 'jspdf';
 import { AnalysisResult } from './forensic-analysis';
 
-function generateSHA256Hash(): string {
-  const chars = '0123456789abcdef';
-  let hash = '';
-  for (let i = 0; i < 64; i++) {
-    hash += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return hash;
+async function sha256Hex(input: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 function formatDate(date: string | Date): string {
@@ -35,8 +35,9 @@ export async function generateForensicPDF(analysis: AnalysisResult, analysisId: 
   const contentWidth = pageWidth - 2 * margin;
   let yPos = margin;
 
-  const reportHash = generateSHA256Hash();
-  const mediaHash = generateSHA256Hash();
+  const analysisHash = await sha256Hex(JSON.stringify(analysis));
+  const mediaHash = await sha256Hex(`${analysis.fileName}:${analysis.fileSize}:${analysis.createdAt}`);
+  const reportHash = await sha256Hex(`${analysisId}:${analysisHash}:${mediaHash}`);
 
   doc.setFillColor(0, 0, 0);
   doc.rect(0, 0, pageWidth, pageHeight, 'F');

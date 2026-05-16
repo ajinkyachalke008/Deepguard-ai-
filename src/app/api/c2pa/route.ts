@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseC2PAFromBuffer, createAbsentResult, C2PAResult } from '@/lib/c2pa-parser';
+import { z } from 'zod';
+import { rateLimit } from '@/lib/api-security';
+import { C2PAJsonSchema } from '@/lib/api-validation';
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024;
 
@@ -13,6 +16,8 @@ const ALLOWED_TYPES = [
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimit(request, 'api:c2pa:post', 15, 60_000);
+    if (limited) return limited;
     const contentType = request.headers.get('content-type') || '';
     
     if (contentType.includes('multipart/form-data')) {
@@ -58,7 +63,7 @@ export async function POST(request: NextRequest) {
       });
       
     } else if (contentType.includes('application/json')) {
-      const body = await request.json();
+      const body = C2PAJsonSchema.parse(await request.json());
       const { fileData, fileName, fileType } = body;
       
       if (!fileData || !fileName) {
@@ -106,12 +111,18 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('C2PA parsing error:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid request',
+        c2pa: createAbsentResult(),
+      }, { status: 400 });
+    }
     
     return NextResponse.json({
       success: false,
       error: 'Failed to parse C2PA data',
       c2pa: createAbsentResult(),
-      details: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500 });
   }
 }
