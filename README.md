@@ -560,12 +560,252 @@ STAGE 8 ► REPORT GENERATION
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
+�
+⚛️ Frontend Stack 
 
-<details open>
-<summary><b>⚛️ Frontend Stack</b></summary>
-<br/>
+�
+￼ 
 
-<div align="center">
-<a href="https://skillicons.dev">
-  <img
+
+�
+
+
+Package
+Version
+Role
+next
+15.3.6
+App Router + Turbopack
+react
+19.0.0
+Concurrent UI
+typescript
+5.x
+Type safety
+tailwindcss
+v4
+Utility styling
+framer-motion
+12.x
+Animations
+three
+0.178.0
+3D engine
+@react-three/fiber
+9.x
+React Three.js
+jspdf
+3.0.4
+PDF reports
+recharts
+3.x
+Charts
+react-particles
+3.8.1
+Particles
+zod
+4.x
+Validation
+sonner
+2.x
+Toasts
+�
+
+�
+🗄️ Backend & Auth Stack 
+
+�
+￼ 
+
+
+�
+
+
+Package
+Version
+Role
+@supabase/supabase-js
+2.89.0
+DB + Auth + Realtime
+drizzle-orm
+0.44.7
+Type-safe SQL
+@libsql/client
+0.15.15
+Edge DB client
+better-auth
+1.3.x
+Authentication
+stripe
+19.2.0
+Payments
+bcrypt
+6.0.0
+Password hashing
+�
+
+�
+🤖 ML & Computer Vision Stack 
+
+�
+￼ 
+
+
+�
+
+
+Library
+Purpose
+torch + torchvision
+CNN Training + Inference
+tensorflow
+Secondary model backend
+opencv-python
+Computer vision pipeline
+numpy
+Numerical computing
+fastapi + uvicorn
+ML API server
+ffmpeg-python
+Video frame extraction
+exifread
+EXIF metadata parsing
+@trustnxt/c2pa-ts
+C2PA provenance
+�
+
+📁 Project Structure
+�Deepguard-ai-/
+│
+├── 📁 src/
+│   ├── 📁 app/
+│   │   ├── 📁 (auth)/
+│   │   │   ├── login/page.tsx
+│   │   │   └── register/page.tsx
+│   │   ├── 📁 (dashboard)/
+│   │   │   ├── analyze/page.tsx     ← Main analysis
+│   │   │   ├── batch/page.tsx       ← Batch processor
+│   │   │   ├── reports/page.tsx     ← History
+│   │   │   └── settings/page.tsx
+│   │   ├── 📁 api/
+│   │   │   ├── analyze/route.ts
+│   │   │   ├── report/route.ts
+│   │   │   └── auth/[...all]/route.ts
+│   │   ├── layout.tsx
+│   │   └── page.tsx                 ← Landing page
+│   │
+│   ├── 📁 components/
+│   │   ├── 📁 ui/                   ← shadcn components
+│   │   ├── 📁 forensics/
+│   │   │   ├── SpectralEngine.tsx
+│   │   │   ├── TemporalEngine.tsx
+│   │   │   ├── EntropyVisualizer.tsx
+│   │   │   ├── AudioSpectrogram.tsx
+│   │   │   ├── PixelComparator.tsx
+│   │   │   ├── SteganographyScanner.tsx
+│   │   │   └── EXIFInspector.tsx
+│   │   └── 📁 visualizations/
+│   │       ├── ThreatGlobe.tsx
+│   │       ├── ForensicCharts.tsx
+│   │       └── HexHeatmap.tsx
+│   │
+│   └── 📁 lib/
+│       ├── db/schema.ts
+│       ├── auth.ts
+│       └── utils.ts
+│
+├── 📁 public/
+├── 📁 .github/workflows/
+├── next.config.ts
+├── drizzle.config.ts
+├── package.json
+└── README.md
+
+🗺️ Roadmap
+�✅ 2026 Q2 — FOUNDATION
+  ✅ CNN deepfake detection (ResNet-50)
+  ✅ 7-engine multi-signal forensics
+  ✅ Real-time Web Worker processing
+  ✅ Offline / air-gapped mode
+  ✅ SHA-256 signed PDF reports
+  ✅ C2PA content provenance
+  ✅ Stripe billing integration
+  ✅ Vercel production deployment
+
+🔄 2026 Q3 — INTELLIGENCE
+  🔄 Vision Transformer (ViT) backbone
+  🔄 Audio deepfake (voice clone detect)
+  🔄 Real-time video stream (WebRTC)
+  🔄 Mobile app (React Native)
+  🔄 Hindi & Marathi language support
+
+📋 2026 Q4 — PLATFORM
+  📋 Browser extension (Chrome/Firefox)
+  📋 Public REST API + SDK
+  📋 Blockchain provenance ledger
+  📋 Social media scan integration
+
+📋 2027 — ENTERPRISE
+  📋 On-premise Docker deployment
+  📋 WASM-accelerated inference
+  📋 Court-certified forensic program
+
+👨‍💻 Author
+�
+
+�
+￼
+Ajinkya Arun Chalke
+�
+￼ 
+
+�
+
+�
+￼
+�
+
+
+�
+�
+Load image
+Load image
+�
+
+
+�
+�
+Load image
+Load image
+�
+
+
+�
+￼
+�
+
+
+🏗️ Other Live Projects:
+Project
+Stack
+Status
+🔐 CryptoGuard
+Next.js + ML
+✅ Live
+⚡ EE Zone
+Next.js + CAD
+✅ Live
+🌾 AgroPro
+Next.js + AI
+🔄 Building
+🕵️ FraudLens
+GNN + Neo4j
+🔄 Building
+🌐 IntelOps
+OSINT + PyTorch
+🔄 Building
+�
+
+
+
