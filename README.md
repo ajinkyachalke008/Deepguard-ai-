@@ -26,7 +26,7 @@
 <br/>
 
 <!-- 🔴 LIVE DEMO — Animated pulsing red dot -->
-<a href="https://deepguard-ai-ajinkyachalke008s-projects.vercel.app">
+<a href="https://deepguard-ai-pi.vercel.app">
   <img src="https://img.shields.io/badge/🔴_LIVE_DEMO-Open_App-00d4ff?style=for-the-badge&labelColor=0a0a0a&logoColor=white&logo=vercel" alt="Live Demo"/>
 </a>
 &nbsp;
