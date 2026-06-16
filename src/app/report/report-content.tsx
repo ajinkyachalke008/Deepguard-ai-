@@ -15,12 +15,13 @@ import {
   FileText, Info, BarChart3, Clock, Eye, Layers, Scan, Database, 
   MapPin, Camera, History, Fingerprint, ShieldAlert, FileSearch, HelpCircle,
   ThumbsUp, ThumbsDown, Activity, Ghost, FileCheck, Binary, Brain, Zap, Scale,
-  Lock, Signature, Mic2, Volume2, Cpu
+  Lock, Signature, Mic2, Volume2, Cpu, Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 import { ExplainabilityHeatmap } from '@/components/features/explainability-heatmap';
+import { ThreatTrackerViewer } from '@/components/features/threat-tracker';
 import { DifferentialFrameAnalysis } from '@/components/features/differential-frame-analysis';
 import { C2PAVerification } from '@/components/features/c2pa-verification';
 import { HexEntropyViewer } from '@/components/features/hex-entropy-viewer';
@@ -45,6 +46,56 @@ import { TrustWarning } from '@/components/features/advanced-forensics/trust-war
 import { EvidenceStrengthBadge } from '@/components/features/advanced-forensics/evidence-strength-badge';
 import { FuturisticVerdictHeader } from '@/components/features/advanced-forensics/FuturisticVerdictHeader';
 
+export const getThemeBySeverity = (severity: 'high' | 'mid' | 'low') => {
+  switch (severity) {
+    case 'high': return {
+      borderColor: 'border-forensic-red/40',
+      hoverBorderColor: 'hover:border-forensic-red/60',
+      shadow: 'shadow-[inset_0_0_30px_rgba(255,59,48,0.05),0_0_15px_rgba(255,59,48,0.1)]',
+      textColorTitle: 'text-red-100/90',
+      textColorIcon: 'text-forensic-red',
+      dropShadowTitle: 'drop-shadow-[0_0_5px_rgba(255,59,48,0.8)]',
+      dropShadowIcon: 'drop-shadow-[0_0_8px_rgba(255,59,48,1)]',
+      bgColor: 'bg-forensic-red/10',
+      badgeColor: 'bg-forensic-red/10 text-forensic-red border-forensic-red/20 drop-shadow-[0_0_5px_rgba(255,59,48,0.5)]',
+      gradientPrimary: '#7f1d1d', // red-900
+      gradientSecondary: '#dc2626', // red-600
+      gradientAccent: '#fca5a5',  // red-300
+      glowColor: 'rgba(255,59,48,0.15)'
+    };
+    case 'low': return {
+      borderColor: 'border-cyan-500/40',
+      hoverBorderColor: 'hover:border-cyan-400/60',
+      shadow: 'shadow-[inset_0_0_30px_rgba(34,211,238,0.05),0_0_15px_rgba(34,211,238,0.1)]',
+      textColorTitle: 'text-cyan-100/90',
+      textColorIcon: 'text-cyan-400',
+      dropShadowTitle: 'drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]',
+      dropShadowIcon: 'drop-shadow-[0_0_8px_rgba(34,211,238,1)]',
+      bgColor: 'bg-cyan-500/10',
+      badgeColor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]',
+      gradientPrimary: '#164e63', // cyan-900
+      gradientSecondary: '#0891b2', // cyan-600
+      gradientAccent: '#67e8f9',  // cyan-300
+      glowColor: 'rgba(34,211,238,0.15)'
+    };
+    case 'mid':
+    default: return {
+      borderColor: 'border-amber-500/40',
+      hoverBorderColor: 'hover:border-amber-400/60',
+      shadow: 'shadow-[inset_0_0_30px_rgba(245,158,11,0.05),0_0_15px_rgba(245,158,11,0.1)]',
+      textColorTitle: 'text-amber-100/90',
+      textColorIcon: 'text-amber-400',
+      dropShadowTitle: 'drop-shadow-[0_0_5px_rgba(245,158,11,0.8)]',
+      dropShadowIcon: 'drop-shadow-[0_0_8px_rgba(245,158,11,1)]',
+      bgColor: 'bg-amber-500/10',
+      badgeColor: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]',
+      gradientPrimary: '#713f12', // amber-900
+      gradientSecondary: '#ca8a04', // amber-600
+      gradientAccent: '#fde047',  // amber-300
+      glowColor: 'rgba(234,179,8,0.15)'
+    };
+  }
+};
 function SocialBadge({ platform }: { platform?: string }) {
   if (!platform) return null;
   
@@ -567,6 +618,7 @@ export function ReportContent() {
           forensicConfidence={verdict.confidence}
           verdictLabel={verdict.label}
           verdictSeverity={verdict.severity as 'low' | 'mid' | 'high'}
+          analysis={analysis}
         />
 
         {/* Top Section: Verdict & Reliability */}
@@ -715,6 +767,10 @@ export function ReportContent() {
               <Activity className="w-4 h-4" />
               XAI Heatmap
             </TabsTrigger>
+            <TabsTrigger value="threat" className="rounded-xl data-[state=active]:bg-forensic-red data-[state=active]:text-black gap-2 px-4 border border-transparent data-[state=active]:border-forensic-red/50 shadow-[0_0_15px_rgba(255,59,48,0)] data-[state=active]:shadow-[0_0_15px_rgba(255,59,48,0.5)]">
+              <Target className="w-4 h-4" />
+              Threat Tracker
+            </TabsTrigger>
             {analysis.mediaType === 'video' && (
               <TabsTrigger value="temporal" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-black gap-2 px-4">
                 <Ghost className="w-4 h-4" />
@@ -758,7 +814,10 @@ export function ReportContent() {
                     transition={{ delay: 0.1 }}
                     className="lg:col-span-2"
                   >
-                    <NarrativeTimeline milestones={analysis.aiInterpretation?.narrativeTimeline || analysis.narrativeTimeline} />
+                    <NarrativeTimeline 
+                      milestones={analysis.aiInterpretation?.narrativeTimeline || analysis.narrativeTimeline} 
+                      severity={verdict.severity as 'low' | 'mid' | 'high'}
+                    />
                   </motion.div>
                   <motion.div 
                     initial={{ opacity: 0, y: 20 }}
@@ -766,61 +825,71 @@ export function ReportContent() {
                     transition={{ delay: 0.2 }}
                     className="space-y-6"
                   >
-                    <SpotlightCard className="p-6 rounded-[2rem] space-y-4 relative overflow-hidden group">
-                      <div className="absolute inset-0 opacity-[0.03] pointer-events-none group-hover:opacity-[0.05] transition-opacity" 
-                           style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '15px 15px' }} />
-                      <h3 className="text-sm font-black font-mono text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2 relative z-10">
-                        <FileSearch className="w-4 h-4 text-primary" />
-                        METADATA_SCANNER
-                      </h3>
-                      <div className="space-y-2">
-                        {hiddenData.map((data, i) => (
-                          <BorderRotate 
-                            key={i} 
-                            animationMode="auto-rotate"
-                            animationSpeed={3}
-                            gradientColors={{
-                              primary: '#713f12',     // Dark gold
-                              secondary: '#ca8a04',   // Standard gold
-                              accent: '#fde047'       // Glowing bright yellow/gold
-                            }}
-                            backgroundColor="#000000"
-                            borderRadius={12}
-                            borderWidth={1.5}
-                            className="w-full shadow-[0_0_15px_rgba(234,179,8,0.15)]"
-                          >
-                            <div className="flex items-center justify-between p-2.5 rounded-xl border-none bg-black/60 group hover:bg-black/80 transition-colors w-full">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center text-primary">
-                                  {data.icon}
-                                </div>
-                                <div>
-                                  <div className="text-[9px] font-mono text-muted-foreground uppercase">{data.label}</div>
-                                  <div className="text-[11px] font-bold truncate max-w-[120px]">{data.status}</div>
-                                </div>
-                              </div>
-                              <Badge className={data.risk === 'Safe' ? 'bg-forensic-green/10 text-forensic-green border-forensic-green/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'} variant="outline">
-                                {data.risk}
-                              </Badge>
+                    {(() => {
+                      const theme = getThemeBySeverity(verdict.severity as 'low' | 'mid' | 'high');
+                      return (
+                        <>
+                          <div className={`bg-black/40 backdrop-blur-md border ${theme.borderColor} ${theme.shadow} p-6 rounded-[2rem] space-y-4 relative overflow-hidden group ${theme.hoverBorderColor} transition-colors duration-300`}>
+                            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:15px_15px] opacity-20 pointer-events-none group-hover:opacity-30 transition-opacity duration-700" />
+                            <div className={`absolute top-0 right-0 w-32 h-32 ${theme.bgColor} rounded-full blur-[40px] pointer-events-none`} />
+                            
+                            <h3 className={`text-sm font-black font-mono ${theme.textColorTitle} uppercase tracking-[0.2em] flex items-center gap-2 relative z-10 ${theme.dropShadowTitle}`}>
+                              <FileSearch className={`w-4 h-4 ${theme.textColorIcon} ${theme.dropShadowIcon}`} />
+                              METADATA_SCANNER
+                            </h3>
+                            <div className="space-y-2 relative z-10">
+                              {hiddenData.map((data, i) => (
+                                <BorderRotate 
+                                  key={i} 
+                                  animationMode="auto-rotate"
+                                  animationSpeed={3}
+                                  gradientColors={{
+                                    primary: theme.gradientPrimary,
+                                    secondary: theme.gradientSecondary,
+                                    accent: theme.gradientAccent
+                                  }}
+                                  backgroundColor="#000000"
+                                  borderRadius={12}
+                                  borderWidth={1.5}
+                                  className={`w-full shadow-[0_0_15px_${theme.glowColor}]`}
+                                >
+                                  <div className="flex items-center justify-between p-2.5 rounded-xl border-none bg-black/60 group hover:bg-black/80 transition-colors w-full">
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center ${theme.textColorIcon} ${theme.dropShadowTitle}`}>
+                                        {data.icon}
+                                      </div>
+                                      <div>
+                                        <div className={`text-[9px] font-mono ${theme.textColorTitle} opacity-60 uppercase`}>{data.label}</div>
+                                        <div className="text-[11px] font-bold text-slate-200 truncate max-w-[120px]">{data.status}</div>
+                                      </div>
+                                    </div>
+                                    <Badge className={data.risk === 'Safe' ? 'bg-forensic-green/10 text-forensic-green border-forensic-green/20 drop-shadow-[0_0_5px_rgba(48,255,100,0.5)]' : theme.badgeColor} variant="outline">
+                                      {data.risk}
+                                    </Badge>
+                                  </div>
+                                </BorderRotate>
+                              ))}
                             </div>
-                          </BorderRotate>
-                        ))}
-                      </div>
-                    </SpotlightCard>
-                    <SpotlightCard className="p-6 rounded-[2rem] space-y-4">
-                      <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                        <Database className="w-4 h-4 text-primary" />
-                        File Attributes
-                      </h3>
-                        <div className="space-y-1">
-                          <EvidenceRow label="Capture Device" value={analysis.metadata.camera || "Not Detected"} />
-                          <EvidenceRow label="Format" value={analysis.metadata.format} />
-                          <EvidenceRow label="Resolution" value={analysis.metadata.width ? `${analysis.metadata.width}x${analysis.metadata.height}` : "Unknown"} />
-                          <EvidenceRow label="OS/Software" value={analysis.metadata.software || "Not Detected"} />
-                          <EvidenceRow label="Compression" value={analysis.metadata.isCompressionWarning ? "High/Warning" : "Standard"} />
-                          <EvidenceRow label="EXIF Data" value={analysis.metadata.hasExif ? "Present" : "Not Found"} />
-                        </div>
-                    </SpotlightCard>
+                          </div>
+
+                          <div className={`bg-black/40 backdrop-blur-md border ${theme.borderColor} ${theme.shadow} p-6 rounded-[2rem] space-y-4 relative overflow-hidden group ${theme.hoverBorderColor} transition-colors duration-300 mt-6`}>
+                            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:15px_15px] opacity-20 pointer-events-none group-hover:opacity-30 transition-opacity duration-700" />
+                            <h3 className={`text-sm font-black font-mono ${theme.textColorTitle} uppercase tracking-[0.2em] flex items-center gap-2 relative z-10 ${theme.dropShadowTitle}`}>
+                              <Database className={`w-4 h-4 ${theme.textColorIcon} ${theme.dropShadowIcon}`} />
+                              FILE ATTRIBUTES
+                            </h3>
+                            <div className="space-y-3 relative z-10">
+                              <EvidenceRow label="Capture Device" value={analysis.metadata.camera || "Not Detected"} />
+                              <EvidenceRow label="Format" value={analysis.metadata.format} />
+                              <EvidenceRow label="Resolution" value={analysis.metadata.width ? `${analysis.metadata.width}x${analysis.metadata.height}` : "Unknown"} />
+                              <EvidenceRow label="OS/Software" value={analysis.metadata.software || "Not Detected"} />
+                              <EvidenceRow label="Compression" value={analysis.metadata.isCompressionWarning ? "High/Warning" : "Standard"} />
+                              <EvidenceRow label="EXIF Data" value={analysis.metadata.hasExif ? "Present" : "Not Found"} />
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </motion.div>
                 </div>
               </TabsContent>
@@ -846,6 +915,20 @@ export function ReportContent() {
                     ...r,
                     intensity: Math.round(r.intensity * 100)
                   }))}
+                  demoString={analysis.aiInterpretation?.demoStrings?.heatmap}
+                />
+              </TabsContent>
+
+              <TabsContent value="threat" className="mt-6 outline-none">
+                <ThreatTrackerViewer 
+                  imageSrc={analysis.thumbnailUrl || analysis.fileUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop"}
+                  mediaType={analysis.mediaType}
+                  threats={(analysis.aiInterpretation?.heatmapRegions || analysis.heatmapRegions)
+                    .filter(r => r.intensity >= 0.25)
+                    .map(r => ({
+                      ...r,
+                      intensity: Math.round(r.intensity * 100)
+                    }))}
                   demoString={analysis.aiInterpretation?.demoStrings?.heatmap}
                 />
               </TabsContent>

@@ -120,14 +120,14 @@ export const PerformanceBenchmarkCard = React.forwardRef<
                 <motion.div
                   className="absolute h-full rounded-full bg-primary shadow-[0_0_15px_rgba(0,255,255,0.8)]"
                   initial={{ width: 0 }}
-                  animate={{ width: isInView ? \`\${(mainValue / maxValue) * 100}%\` : 0 }}
+                  animate={{ width: isInView ? `${(mainValue / maxValue) * 100}%` : 0 }}
                   transition={{ duration: 1.5, ease: "easeOut" }}
                 />
                 {/* Benchmark Line */}
                 <motion.div
                   className="absolute -translate-y-1/2 top-1/2 z-20"
                   style={{
-                    left: \`\${(benchmarkAverage / maxValue) * 100}%\`,
+                    left: `${(benchmarkAverage / maxValue) * 100}%`,
                     width: '2px',
                     height: '24px',
                     backgroundColor: '#eab308', // Yellow benchmark
@@ -173,7 +173,7 @@ export const PerformanceBenchmarkCard = React.forwardRef<
                     <div
                       key={level.label}
                       className={cn("h-full", level.color)}
-                      style={{ width: \`\${width}%\`}}
+                      style={{ width: `${width}%`}}
                     />
                   );
               })}

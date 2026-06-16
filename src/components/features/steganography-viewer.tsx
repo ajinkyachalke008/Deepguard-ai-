@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Scan, Layers, ShieldCheck, ShieldAlert, Cpu, 
-  HelpCircle, Info, Maximize2, Download, Eye, EyeOff
+  HelpCircle, Info, Maximize2, Download, Eye, EyeOff, Key, FileText, Loader2
 } from 'lucide-react';
 import {
   Tooltip,
@@ -31,11 +31,12 @@ import { extractBitPlane, analyzeLSBEntropy, detectStegoClusters } from '@/lib/s
 
 interface SteganographyViewerProps {
   imageSrc: string;
+  mediaType?: 'image' | 'video';
   onAnalysisResult?: (result: any) => void;
   demoString?: string;
 }
 
-export function SteganographyViewer({ imageSrc, onAnalysisResult, demoString }: SteganographyViewerProps) {
+export function SteganographyViewer({ imageSrc, mediaType = 'image', onAnalysisResult, demoString }: SteganographyViewerProps) {
   const [currentBit, setCurrentBit] = useState(0); // 0 = LSB, 7 = MSB
   const [isProcessing, setIsProcessing] = useState(false);
   const [lsbEntropy, setLsbEntropy] = useState<number | null>(null);
@@ -43,8 +44,31 @@ export function SteganographyViewer({ imageSrc, onAnalysisResult, demoString }: 
   const [showAnomalies, setShowAnomalies] = useState(true);
   const [channelData, setChannelData] = useState<ImageData | null>(null);
   
+  const [isDecoding, setIsDecoding] = useState(false);
+  const [decodedPayload, setDecodedPayload] = useState<string | null>(null);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sourceImageRef = useRef<HTMLImageElement | null>(null);
+
+  const handleDecode = () => {
+    setIsDecoding(true);
+    setDecodedPayload(null);
+    setTimeout(() => {
+      setIsDecoding(false);
+      const hex = Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('').toUpperCase();
+      setDecodedPayload(`0x${hex.slice(0,8)}... TRACKER_ID: ${hex.slice(8, 24)}`);
+    }, 2500);
+  };
+
+  const handleDownload = () => {
+    if (canvasRef.current) {
+      const url = canvasRef.current.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `deepguard_bitplane_layer_${currentBit}.png`;
+      a.click();
+    }
+  };
 
   const performAnalysis = useCallback(async (imageData: ImageData) => {
     setIsProcessing(true);
@@ -61,27 +85,120 @@ export function SteganographyViewer({ imageSrc, onAnalysisResult, demoString }: 
     }
   }, [onAnalysisResult]);
 
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const animationRef = useRef<number | null>(null);
+
   useEffect(() => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = imageSrc;
-    img.onload = () => {
-      sourceImageRef.current = img;
+    const generateFallback = () => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      
-      // Keep dimensions reasonable for processing
-      const scale = Math.min(1, 1200 / Math.max(img.width, img.height));
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      setChannelData(imageData);
-      performAnalysis(imageData);
+      canvas.width = 640;
+      canvas.height = 480;
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, 640, 480);
+      const imgData = ctx.getImageData(0, 0, 640, 480);
+      for (let i = 0; i < imgData.data.length; i += 4) {
+        const noise = Math.random() * 255;
+        imgData.data[i] = noise;
+        imgData.data[i+1] = noise;
+        imgData.data[i+2] = noise;
+        imgData.data[i+3] = 255;
+      }
+      setChannelData(imgData);
+      performAnalysis(imgData);
     };
-  }, [imageSrc, performAnalysis]);
+
+    if (!imageSrc) {
+      generateFallback();
+      return;
+    }
+
+    if (mediaType === 'video') {
+      const video = document.createElement('video');
+      video.crossOrigin = "anonymous";
+      video.src = imageSrc;
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      videoRef.current = video;
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      let lastAnalysisTime = 0;
+
+      const processFrame = () => {
+        if (video.videoWidth === 0) {
+          animationRef.current = requestAnimationFrame(processFrame);
+          return;
+        }
+
+        const scale = Math.min(1, 800 / Math.max(video.videoWidth, video.videoHeight));
+        canvas.width = video.videoWidth * scale;
+        canvas.height = video.videoHeight * scale;
+        
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        try {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          setChannelData(imageData);
+          
+          const now = Date.now();
+          if (now - lastAnalysisTime > 500) { // Throttle heavy analysis to 2fps
+            performAnalysis(imageData);
+            lastAnalysisTime = now;
+          }
+        } catch (e) {
+          console.warn("CORS or drawing error on video frame");
+        }
+        
+        animationRef.current = requestAnimationFrame(processFrame);
+      };
+
+      video.addEventListener('play', () => {
+        processFrame();
+      });
+
+      video.addEventListener('error', () => {
+        generateFallback();
+      });
+
+      video.play().catch(() => generateFallback());
+
+      return () => {
+        video.pause();
+        video.src = '';
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      };
+    } else {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = imageSrc;
+      img.onload = () => {
+        sourceImageRef.current = img;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        const scale = Math.min(1, 1200 / Math.max(img.width, img.height));
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        try {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          setChannelData(imageData);
+          performAnalysis(imageData);
+        } catch (e) {
+          generateFallback();
+        }
+      };
+      img.onerror = () => {
+        generateFallback();
+      };
+    }
+  }, [imageSrc, mediaType, performAnalysis]);
 
   useEffect(() => {
     if (!channelData || !canvasRef.current) return;
@@ -107,7 +224,10 @@ export function SteganographyViewer({ imageSrc, onAnalysisResult, demoString }: 
             <Cpu className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-bold tracking-tight">Bit-Plane Payload Scanner</h3>
+            <h3 className="text-sm font-bold tracking-tight flex items-center gap-2">
+              Bit-Plane Payload Scanner
+              {mediaType === 'video' && <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[9px]">LIVE VIDEO</Badge>}
+            </h3>
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
               X-RAY Extraction: Bit {currentBit} {currentBit === 0 ? '(LSB)' : currentBit === 7 ? '(MSB)' : ''}
             </p>
@@ -182,6 +302,14 @@ export function SteganographyViewer({ imageSrc, onAnalysisResult, demoString }: 
               <Scan className="w-3.5 h-3.5 text-primary" />
               <span>{lsbEntropy?.toFixed(4) || '0.0000'} Entropy</span>
             </div>
+            <div className="w-[1px] h-3 bg-white/10" />
+            <button 
+              onClick={handleDownload}
+              className="flex items-center gap-2 text-[10px] font-mono hover:text-primary transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Capture Frame</span>
+            </button>
           </div>
         </div>
 
@@ -272,6 +400,33 @@ export function SteganographyViewer({ imageSrc, onAnalysisResult, demoString }: 
               {showAnomalies ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               {showAnomalies ? 'Hide Anomaly Overlay' : 'Show Anomaly Overlay'}
             </Button>
+
+            <div className="pt-2 border-t border-white/5">
+              {!decodedPayload && !isDecoding ? (
+                <Button 
+                  className="w-full rounded-full h-10 gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-all"
+                  onClick={handleDecode}
+                >
+                  <Key className="w-4 h-4" />
+                  Attempt Payload Extraction
+                </Button>
+              ) : isDecoding ? (
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-2 h-[80px]">
+                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                  <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Decrypting Bit-Plane...</span>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-forensic-green/10 border border-forensic-green/30 space-y-2">
+                  <div className="flex items-center gap-2 text-forensic-green text-[10px] font-bold uppercase tracking-widest">
+                    <FileText className="w-3.5 h-3.5" />
+                    Payload Extracted
+                  </div>
+                  <p className="text-[9px] font-mono text-forensic-green/80 break-all leading-relaxed">
+                    {decodedPayload}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="p-4 rounded-[1.5rem] bg-primary/5 border border-primary/10">

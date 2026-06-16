@@ -570,27 +570,69 @@ export function generateDemoAnalysis(profileId: number, fileName?: string, fileU
 // ---------------------------------------------------------------------------
 
 function generateHeatmapRegions(profile: DemoProfile): AnalysisResult['heatmapRegions'] {
+  const safeTerms = [
+    { label: 'Normal Image Quality', explanation: 'This area looks completely natural and matches a real camera.' },
+    { label: 'Standard Camera Noise', explanation: 'The grainy texture here is totally normal for a real photo.' },
+    { label: 'Consistent Lighting', explanation: 'The shadows and highlights here are completely natural.' }
+  ];
+  
+  const suspiciousTerms = [
+    { label: 'Slightly Weird Pixels', explanation: 'There are a few strange pixels here, but it could just be image compression.' },
+    { label: 'Over-Smoothed Area', explanation: 'This part looks a bit too smooth, possibly from a heavy beauty filter.' },
+    { label: 'Strange Image Quality', explanation: 'The quality here drops suddenly, which is slightly suspicious.' }
+  ];
+  
+  const moderateTerms = [
+    { label: 'Unnatural Textures', explanation: 'The textures here look painted or artificial rather than photographed.' },
+    { label: 'Messy Edges', explanation: 'The boundary between the subject and the background is glitchy.' },
+    { label: 'Blocky Compression', explanation: 'This area has heavy, unnatural blocky squares.' },
+    { label: 'Inconsistent Sharpness', explanation: 'Part of this area is perfectly sharp while the rest is blurry.' },
+    { label: 'Fake Background Blur', explanation: 'The blur effect here looks artificially added, not from a real lens.' }
+  ];
+  
+  const severeTerms = [
+    { label: 'AI Fingerprint Detected', explanation: 'We found hidden, repeating patterns that are left behind by AI generators.' },
+    { label: 'Melted AI Details', explanation: 'Small details (like hair, text, or fingers) look melted and deformed.' },
+    { label: 'Impossible Lighting', explanation: 'The shadows here directly contradict where the light is actually coming from.' },
+    { label: 'Fake Object Blending', explanation: 'Two different objects are morphing into each other in an impossible way.' },
+    { label: 'AI Color Glitch', explanation: 'Random patches of neon colors are appearing where they shouldn\'t be.' },
+    { label: 'Copy-Paste Artifacts', explanation: 'It looks like this piece of the image was poorly pasted over another.' }
+  ];
+
+  const pickRandom = (arr: any[], count: number) => {
+    const shuffled = [...arr].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  };
+
   if (profile.id >= 8) {
-    return [{ id: 'h1', x: 40, y: 35, width: 20, height: 20, intensity: randRange1(0.05, 0.15), label: 'Normal variation', explanation: 'No significant anomalies detected in this region.' }];
+    const term = pickRandom(safeTerms, 1)[0];
+    return [{ id: 'h1', x: 40, y: 35, width: 20, height: 20, intensity: randRange1(0.05, 0.15), ...term }];
   }
   if (profile.id >= 6) {
+    const term = pickRandom(suspiciousTerms, 1)[0];
     return [
-      { id: 'h1', x: randInt(30, 50), y: randInt(25, 40), width: randInt(10, 18), height: randInt(10, 18), intensity: randRange1(0.1, 0.25), label: 'Minor texture variation', explanation: 'Slight statistical deviation within normal parameters.' },
+      { id: 'h1', x: randInt(30, 50), y: randInt(25, 40), width: randInt(10, 18), height: randInt(10, 18), intensity: randRange1(0.1, 0.25), ...term },
     ];
   }
   if (profile.id >= 4) {
+    const terms = pickRandom(moderateTerms, 2);
     return [
-      { id: 'h1', x: randInt(25, 45), y: randInt(20, 35), width: randInt(12, 22), height: randInt(15, 25), intensity: randRange1(0.3, 0.5), label: 'Texture anomaly zone', explanation: 'Moderate texture irregularities detected. Could indicate processing artifacts or manipulation.' },
-      { id: 'h2', x: randInt(40, 60), y: randInt(40, 55), width: randInt(8, 15), height: randInt(8, 12), intensity: randRange1(0.25, 0.45), label: 'Edge discontinuity', explanation: 'Edge sharpness varies from surrounding area.' },
+      { id: 'h1', x: randInt(25, 45), y: randInt(20, 35), width: randInt(12, 22), height: randInt(15, 25), intensity: randRange1(0.3, 0.5), ...terms[0] },
+      { id: 'h2', x: randInt(40, 60), y: randInt(40, 55), width: randInt(8, 15), height: randInt(8, 12), intensity: randRange1(0.25, 0.45), ...terms[1] },
     ];
   }
   // Profiles 1-3 — high severity
-  return [
-    { id: 'h1', x: randInt(20, 40), y: randInt(15, 30), width: randInt(18, 28), height: randInt(20, 30), intensity: randRange1(0.7, 0.95), label: 'Facial boundary artifacts', explanation: 'Detected edge discontinuities typical of face-swapping or GAN-generated facial regions.' },
-    { id: 'h2', x: randInt(35, 55), y: randInt(28, 42), width: randInt(8, 15), height: randInt(6, 12), intensity: randRange1(0.6, 0.85), label: 'Eye region anomaly', explanation: 'Gaze reflection asymmetry and iris texture blurring consistent with synthetic generation.' },
-    { id: 'h3', x: randInt(30, 50), y: randInt(50, 65), width: randInt(10, 18), height: randInt(6, 10), intensity: randRange1(0.5, 0.75), label: 'Mouth/teeth irregularity', explanation: 'Tooth geometry and lip boundary show non-natural rendering patterns.' },
-    ...(profile.id === 1 ? [{ id: 'h4', x: randInt(15, 30), y: randInt(10, 25), width: randInt(12, 20), height: randInt(15, 25), intensity: randRange1(0.55, 0.8), label: 'Hair/background blending', explanation: 'Hair-to-background transition shows frequency artifacts from neural blending.' }] : []),
-  ];
+  const termsCount = profile.id === 1 ? 4 : 3;
+  const terms = pickRandom(severeTerms, termsCount);
+  return terms.map((term, index) => ({
+    id: `h${index + 1}`,
+    x: randInt(15 + index * 5, 40 + index * 5),
+    y: randInt(15 + index * 10, 30 + index * 10),
+    width: randInt(10, 25),
+    height: randInt(10, 25),
+    intensity: randRange1(0.55 + (3 - index) * 0.05, 0.95),
+    ...term
+  }));
 }
 
 function generateNarrativeTimeline(profile: DemoProfile): AnalysisResult['narrativeTimeline'] {
@@ -598,12 +640,12 @@ function generateNarrativeTimeline(profile: DemoProfile): AnalysisResult['narrat
   const isSuspicious = profile.id <= 5;
 
   return [
-    { id: 'n1', milestone: 'Signal Acquisition', description: 'Extracted 14 independent forensic signals from media.', timestamp: 'T+0.2s', iconType: 'search' },
-    { id: 'n2', milestone: 'Metadata Extraction', description: profile.id >= 7 ? `Verified camera sensor signature.` : profile.id >= 5 ? 'Partial metadata recovered.' : 'No authentic EXIF metadata found.', timestamp: 'T+0.5s', iconType: profile.id >= 7 ? 'check' : profile.id >= 5 ? 'search' : 'alert' },
-    { id: 'n3', milestone: 'GAN Artifact Scan', description: isAI ? `Detected ${profile.id === 1 ? 'severe' : 'significant'} checkerboard upsampling residuals.` : 'No significant GAN artifacts detected.', timestamp: 'T+1.2s', iconType: isAI ? 'alert' : 'check' },
-    { id: 'n4', milestone: 'Spectral Analysis', description: isSuspicious ? 'Non-natural frequency periodicity identified.' : 'Natural frequency distribution confirmed.', timestamp: 'T+2.0s', iconType: isSuspicious ? 'alert' : 'shield' },
-    { id: 'n5', milestone: 'Anatomical Verification', description: isAI ? 'Geometric inconsistencies in facial landmarks.' : 'Facial geometry within natural parameters.', timestamp: 'T+3.1s', iconType: isAI ? 'alert' : 'check' },
-    { id: 'n6', milestone: 'Verdict Synthesis', description: `${profile.verdict} — ${profile.forensicStatus}`, timestamp: 'T+4.5s', iconType: profile.id <= 3 ? 'alert' : profile.id <= 5 ? 'search' : 'shield' },
+    { id: 'n1', milestone: 'System Initialization', description: 'DeepGuard Neural Engine engaged. Commencing multi-layered forensic protocol.', timestamp: 'T+0.012s', iconType: 'search' },
+    { id: 'n2', milestone: 'Optical Sensor Verification', description: profile.id >= 7 ? 'Successfully verified authentic hardware signature and optical noise floor.' : profile.id >= 5 ? 'Warning: Origin metadata is incomplete or partially stripped.' : 'CRITICAL: No authentic camera sensor signature detected. Possible digital origin.', timestamp: 'T+0.415s', iconType: profile.id >= 7 ? 'check' : profile.id >= 5 ? 'search' : 'alert' },
+    { id: 'n3', milestone: 'Deep-Level Network Scan', description: isAI ? `Detected ${profile.id === 1 ? 'severe' : 'distinct'} traces of Generative Adversarial Network (GAN) upscaling grids.` : 'Scan complete. No generative artifacts found in image sub-layers.', timestamp: 'T+1.204s', iconType: isAI ? 'alert' : 'check' },
+    { id: 'n4', milestone: 'Spectral Frequency Analysis', description: profile.id <= 3 ? 'Unnatural frequency waves detected. Pixels have been mathematically assembled.' : profile.id <= 5 ? 'Minor frequency distortions found, indicating heavy digital alteration.' : 'Frequency waves are organic. Light distribution matches real-world capture.', timestamp: 'T+2.188s', iconType: profile.id <= 3 ? 'alert' : profile.id <= 5 ? 'search' : 'shield' },
+    { id: 'n5', milestone: 'Physics & Reality Integrity', description: isAI ? 'Structural failure: Detected impossible lighting vectors and anatomical warping.' : 'Integrity confirmed. Shadows, lighting, and physical geometry are mathematically sound.', timestamp: 'T+3.402s', iconType: isAI ? 'alert' : 'check' },
+    { id: 'n6', milestone: 'Terminal Verdict Rendered', description: `[CLASSIFICATION: ${profile.verdict.toUpperCase()}] — ${profile.forensicStatus}`, timestamp: 'T+4.005s', iconType: profile.id <= 3 ? 'alert' : profile.id <= 5 ? 'search' : 'shield' },
   ];
 }
 
@@ -611,40 +653,50 @@ function generateConfidenceEvolution(profile: DemoProfile, finalConfidence: numb
   const isAI = profile.id <= 4;
 
   return [
-    { stage: 'Initial Baseline', delta: 0, cumulative: 50, explanation: 'Starting from neutral prior of 50%.' },
-    { stage: 'Metadata Analysis', delta: isAI ? -8 : 10, cumulative: isAI ? 42 : 60, explanation: isAI ? 'Missing or synthetic EXIF metadata.' : 'Valid camera metadata found.' },
-    { stage: 'GAN Texture Scan', delta: isAI ? 18 : -5, cumulative: isAI ? 60 : 55, explanation: isAI ? 'Elevated checkerboard artifacts detected.' : 'No significant GAN residuals.' },
-    { stage: 'Spectral Frequency', delta: isAI ? 12 : -8, cumulative: isAI ? 72 : 47, explanation: isAI ? 'Non-natural spectral periodicity confirmed.' : 'Natural frequency distribution confirmed.' },
-    { stage: 'Anatomical Check', delta: isAI ? 8 : -3, cumulative: isAI ? 80 : 44, explanation: isAI ? 'Facial landmark deviations noted.' : 'Facial geometry consistent.' },
-    { stage: 'Signal Fusion', delta: Math.round(finalConfidence - (isAI ? 80 : 44)), cumulative: Math.round(finalConfidence), explanation: 'Multi-channel Bayesian fusion applied.' },
+    { stage: 'Initial Look', delta: 0, cumulative: 50, explanation: 'Starting the analysis from scratch.' },
+    { stage: 'Camera Check', delta: isAI ? -8 : 10, cumulative: isAI ? 42 : 60, explanation: isAI ? 'The image is missing standard camera details.' : 'Found normal camera details.' },
+    { stage: 'AI Texture Test', delta: isAI ? 18 : -5, cumulative: isAI ? 60 : 55, explanation: isAI ? 'Found artificial textures used by AI.' : 'Textures look like a real photo.' },
+    { stage: 'Image Quality', delta: isAI ? 12 : -8, cumulative: isAI ? 72 : 47, explanation: isAI ? 'The image quality is unnaturally perfect.' : 'The image quality has normal imperfections.' },
+    { stage: 'Physics Check', delta: isAI ? 8 : -3, cumulative: isAI ? 80 : 44, explanation: isAI ? 'Found impossible shapes or lighting.' : 'Everything follows the laws of physics.' },
+    { stage: 'Final Score', delta: Math.round(finalConfidence - (isAI ? 80 : 44)), cumulative: Math.round(finalConfidence), explanation: 'Calculated the final result.' },
   ];
 }
 
 function generateConfidenceGaps(profile: DemoProfile): AnalysisResult['confidenceGaps'] {
   return [
-    { id: 'g1', condition: 'Camera Source EXIF', impact: '+12%', recommendation: 'Provide original file with EXIF headers intact.', status: profile.id >= 7 ? 'present' : profile.id >= 5 ? 'degraded' : 'missing' },
-    { id: 'g2', condition: 'C2PA Provenance', impact: '+15%', recommendation: 'Submit media with Content Credentials.', status: profile.id >= 8 ? 'present' : 'missing' },
-    { id: 'g3', condition: 'Original Resolution', impact: '+8%', recommendation: 'Avoid recompression before analysis.', status: profile.id >= 6 ? 'present' : profile.id >= 4 ? 'degraded' : 'missing' },
-    { id: 'g4', condition: 'RAW/Lossless Source', impact: '+10%', recommendation: 'Submit RAW or TIFF for maximum fidelity.', status: profile.id >= 9 ? 'present' : 'missing' },
+    { id: 'g1', condition: 'Original Camera Info', impact: '+12%', recommendation: 'Provide the original file straight from the camera.', status: profile.id >= 7 ? 'present' : profile.id >= 5 ? 'degraded' : 'missing' },
+    { id: 'g2', condition: 'Content Credentials', impact: '+15%', recommendation: 'Submit an image that has digital signatures built-in.', status: profile.id >= 8 ? 'present' : 'missing' },
+    { id: 'g3', condition: 'High Quality Image', impact: '+8%', recommendation: 'Avoid uploading screenshots or heavily compressed files.', status: profile.id >= 6 ? 'present' : profile.id >= 4 ? 'degraded' : 'missing' },
+    { id: 'g4', condition: 'RAW Photo Format', impact: '+10%', recommendation: 'Upload the unedited RAW photo if possible.', status: profile.id >= 9 ? 'present' : 'missing' },
   ];
 }
 
 function generatePlausibilityChecks(profile: DemoProfile): AnalysisResult['plausibilityChecks'] {
   const isAI = profile.id <= 4;
   return [
-    { id: 'p1', label: 'Sensor Noise Consistency', status: isAI ? 'anomalous' : 'passed', explanation: isAI ? 'Noise pattern does not match any known camera sensor.' : 'Noise pattern consistent with authentic camera sensor.' },
-    { id: 'p2', label: 'JPEG Quantization Table', status: profile.id <= 3 ? 'anomalous' : profile.id <= 5 ? 'inconclusive' : 'passed', explanation: profile.id <= 3 ? 'Non-standard quantization tables detected.' : 'Standard quantization tables verified.' },
-    { id: 'p3', label: 'Color Space Integrity', status: profile.id <= 2 ? 'anomalous' : 'passed', explanation: profile.id <= 2 ? 'Color gamut extends beyond sRGB in non-HDR context.' : 'Color space consistent with declared profile.' },
-    { id: 'p4', label: 'Thumbnail Consistency', status: profile.id <= 3 ? 'anomalous' : profile.id <= 5 ? 'inconclusive' : 'passed', explanation: profile.id <= 3 ? 'Embedded thumbnail does not match main image.' : 'Thumbnail consistent with main image.' },
-    { id: 'p5', label: 'Shadow Direction Analysis', status: profile.id <= 4 ? 'inconclusive' : 'passed', explanation: profile.id <= 4 ? 'Multiple shadow direction vectors detected.' : 'Single consistent light source confirmed.' },
+    { 
+      id: 'p1', 
+      label: 'GAN_TEXTURE_RESIDUALS', 
+      status: profile.id <= 3 ? 'anomalous' : profile.id <= 5 ? 'warning' : 'passed', 
+      explanation: profile.id <= 3 ? 'Microscopic AI texture patterns detected in the image.' : profile.id <= 5 ? 'Minor irregularities found in the image texture.' : 'The image texture is completely natural.' 
+    },
+    { 
+      id: 'p2', 
+      label: 'SPECTRAL_ANOMALY_INDEX', 
+      status: profile.id <= 3 ? 'anomalous' : profile.id <= 5 ? 'warning' : 'passed', 
+      explanation: profile.id <= 3 ? 'Unnatural frequency waves found, typical of AI generation.' : profile.id <= 5 ? 'Slight frequency distortion detected.' : 'Frequency waves match a real camera.' 
+    },
+    { id: 'p3', label: 'Color Space Integrity', status: profile.id <= 2 ? 'anomalous' : 'passed', explanation: profile.id <= 2 ? 'Colors look too perfect and vibrant for a raw photo.' : 'Colors look natural.' },
+    { id: 'p4', label: 'Thumbnail Consistency', status: profile.id <= 3 ? 'anomalous' : profile.id <= 5 ? 'warning' : 'passed', explanation: profile.id <= 3 ? 'The hidden thumbnail doesn\'t match the picture.' : 'The thumbnail matches perfectly.' },
+    { id: 'p5', label: 'Physics Check', status: profile.id <= 4 ? 'warning' : 'passed', explanation: profile.id <= 4 ? 'Found impossible shadows or lighting.' : 'Lighting is natural.' },
   ];
 }
 
 function generateAuthenticityDrift(profile: DemoProfile, timestamps: number[]): AnalysisResult['authenticityDrift'] {
   return [
-    { id: 'd1', event: 'Media Origin', timestamp: new Date(timestamps[0]).toISOString(), confidence: profile.id >= 7 ? 95 : profile.id >= 5 ? 70 : 40, drift: 0, type: 'original', details: profile.id >= 7 ? 'Authentic camera capture confirmed.' : 'Origin could not be verified.' },
-    { id: 'd2', event: 'Processing Pipeline', timestamp: new Date(timestamps[2]).toISOString(), confidence: profile.id >= 6 ? 85 : 55, drift: profile.id <= 4 ? -15 : -3, type: 'compression', details: profile.id <= 4 ? 'Non-standard processing pipeline detected.' : 'Standard processing pipeline.' },
-    { id: 'd3', event: 'Forensic Scan', timestamp: new Date(timestamps[4]).toISOString(), confidence: Math.round(randRange1(...profile.confidence)), drift: profile.id <= 3 ? -25 : profile.id <= 5 ? -10 : 5, type: profile.id <= 3 ? 'editing' : 'upload', details: profile.forensicStatus },
+    { id: 'd1', event: 'Source Instantiation', timestamp: new Date(timestamps[0]).toISOString(), confidence: profile.id >= 7 ? 95 : profile.id >= 5 ? 70 : 40, drift: 0, type: 'original', details: profile.id >= 7 ? 'Authentic photonic capture signature logged.' : 'Warning: Source instantiation trace is opaque or synthetic.' },
+    { id: 'd2', event: 'Compression Matrix', timestamp: new Date(timestamps[2]).toISOString(), confidence: profile.id >= 6 ? 85 : 55, drift: profile.id <= 4 ? -15 : -3, type: 'compression', details: profile.id <= 4 ? 'Anomalous algorithmic compression layers detected.' : 'Standard JPEG/PNG compression matrix verified.' },
+    { id: 'd3', event: 'DeepGuard Telemetry', timestamp: new Date(timestamps[4]).toISOString(), confidence: Math.round(randRange1(...profile.confidence)), drift: profile.id <= 3 ? -25 : profile.id <= 5 ? -10 : 5, type: profile.id <= 3 ? 'editing' : 'upload', details: profile.forensicStatus },
   ];
 }
 

@@ -238,7 +238,7 @@ export function ExplainabilityHeatmap({
                       scale: { type: 'spring', stiffness: 300, damping: 20 },
                       opacity: { duration: 1.5 + Math.random() * 2, repeat: Infinity, repeatType: 'mirror', ease: "easeInOut" }
                     }}
-                    className={`absolute rounded-xl border border-current pointer-events-auto cursor-pointer group`}
+                    className={`absolute rounded-xl border border-current pointer-events-auto cursor-pointer group shadow-[0_0_15px_currentcolor,inset_0_0_10px_currentcolor] backdrop-blur-[2px]`}
                     style={{
                       left: `${region.x}%`,
                       top: `${region.y}%`,
@@ -285,16 +285,8 @@ export function ExplainabilityHeatmap({
                       animate={{ scale: isHovered || isSelected ? 1.5 : 1, opacity: isHovered || isSelected ? 1 : 0.5 }}
                     />
 
-                    {/* ALWAYS-ON Floating Forensic Suspect Label */}
-                    <motion.div
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/90 border border-current px-2 py-0.5 rounded shadow-[0_0_10px_currentcolor] flex items-center gap-1.5 z-30 pointer-events-none"
-                    >
-                      <Target className="w-3 h-3 animate-pulse" />
-                      <span className="text-[9px] font-black tracking-widest uppercase text-white">{region.label}</span>
-                      <span className="text-[8px] font-mono opacity-80 border-l border-white/20 pl-1">{region.intensity}%</span>
-                    </motion.div>
+                    {/* ALWAYS-ON Floating Forensic Suspect Label Removed as per user request to keep image clear */}
+
 
                     {/* Detailed Tooltip on Hover/Select */}
                     <AnimatePresence>

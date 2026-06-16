@@ -387,32 +387,55 @@ function simulateForensicAnalysis(
     confidence: 70 + rng() * 25
   }));
   
+  const severeTerms = [
+    { label: 'AI Fingerprint Detected', explanation: 'We found hidden, repeating patterns that are left behind by AI generators.' },
+    { label: 'Melted AI Details', explanation: 'Small details (like hair, text, or fingers) look melted and deformed.' },
+    { label: 'Impossible Lighting', explanation: 'The shadows here directly contradict where the light is actually coming from.' },
+    { label: 'Fake Object Blending', explanation: 'Two different objects are morphing into each other in an impossible way.' },
+    { label: 'AI Color Glitch', explanation: 'Random patches of neon colors are appearing where they shouldn\'t be.' },
+    { label: 'Copy-Paste Artifacts', explanation: 'It looks like this piece of the image was poorly pasted over another.' }
+  ];
+  
+  const safeTerms = [
+    { label: 'Normal Image Quality', explanation: 'This area looks completely natural and matches a real camera.' },
+    { label: 'Standard Camera Noise', explanation: 'The grainy texture here is totally normal for a real photo.' },
+    { label: 'Consistent Lighting', explanation: 'The shadows and highlights here are completely natural.' }
+  ];
+
+  const pickRandom = (arr: any[], count: number) => {
+    const shuffled = [...arr].sort(() => 0.5 - rng());
+    return shuffled.slice(0, count);
+  };
+
+  const selectedSevere = pickRandom(severeTerms, 2);
+  const selectedSafe = pickRandom(safeTerms, 1)[0];
+
   const heatmapRegions = isLikelyAI ? [
-    { id: 'r1', x: 30 + rng() * 20, y: 20 + rng() * 10, width: 15 + rng() * 10, height: 20 + rng() * 10, intensity: 0.7 + rng() * 0.3, label: 'Facial boundary artifacts', explanation: 'Detected edge discontinuities typical of face-swapping algorithms.' },
-    { id: 'r2', x: 40 + rng() * 10, y: 35 + rng() * 10, width: 8 + rng() * 5, height: 5 + rng() * 3, intensity: 0.6 + rng() * 0.3, label: 'Eye region anomaly', explanation: 'Gaze reflection asymmetry and iris texture blurring detected.' }
-  ] : [{ id: 'r1', x: 45, y: 40, width: 10, height: 10, intensity: 0.2, label: 'Normal variation', explanation: 'No significant anomalies detected.' }];
+    { id: 'r1', x: 30 + rng() * 20, y: 20 + rng() * 10, width: 15 + rng() * 10, height: 20 + rng() * 10, intensity: 0.7 + rng() * 0.3, ...selectedSevere[0] },
+    { id: 'r2', x: 40 + rng() * 10, y: 35 + rng() * 10, width: 8 + rng() * 5, height: 5 + rng() * 3, intensity: 0.6 + rng() * 0.3, ...selectedSevere[1] }
+  ] : [{ id: 'r1', x: 45, y: 40, width: 10, height: 10, intensity: 0.2, ...selectedSafe }];
   
   const narrativeTimeline: AnalysisResult['narrativeTimeline'] = [
-    { id: 'n1', milestone: 'Signal Acquisition', description: 'Extracted 12 independent forensic signals.', timestamp: 'T+0.2s', iconType: 'search' },
-    { id: 'n2', milestone: 'Metadata Extraction', description: extractedMeta?.hasExif ? `Verified ${extractedMeta.camera} signature.` : 'No EXIF metadata.', timestamp: 'T+0.5s', iconType: extractedMeta?.hasExif ? 'check' : 'alert' },
-    { id: 'n3', milestone: 'Anomaly Detection', description: isLikelyAI ? 'Identified high-frequency artifacts.' : 'No significant deviations.', timestamp: 'T+0.8s', iconType: isLikelyAI ? 'alert' : 'shield' },
+    { id: 'n1', milestone: 'Scanning Started', description: 'Checking the image for AI manipulation.', timestamp: 'T+0.2s', iconType: 'search' },
+    { id: 'n2', milestone: 'Camera Check', description: extractedMeta?.hasExif ? `Found proof it was taken by a ${extractedMeta.camera || 'real camera'}.` : 'No proof this came from a real camera.', timestamp: 'T+0.5s', iconType: extractedMeta?.hasExif ? 'check' : 'alert' },
+    { id: 'n3', milestone: 'AI Generation Test', description: isLikelyAI ? 'Found clear signs of AI generation.' : 'No signs of AI generation.', timestamp: 'T+0.8s', iconType: isLikelyAI ? 'alert' : 'shield' },
   ];
 
   if (mediaType === 'video' && temporalResult) {
     narrativeTimeline.push({
-      id: 'n5', milestone: 'Temporal Analysis', 
-      description: `Detected ${temporalResult.anomalyRegions.length} anomalies across ${temporalResult.totalFrames} frames.`,
+      id: 'n5', milestone: 'Video Scan', 
+      description: `Checked ${temporalResult.totalFrames} frames for weird motion.`,
       timestamp: 'T+2.1s', iconType: temporalResult.overallScore >= 70 ? 'check' : 'alert'
     });
   }
 
   const confidenceEvolution = [
-    { stage: 'Metadata Analysis', delta: extractedMeta?.hasExif ? 8 : -5, cumulative: extractedMeta?.hasExif ? 58 : 45, explanation: 'Primary manifest scan complete.' },
-    { stage: 'Spectral Scan', delta: isLikelyAI ? 15 : -5, cumulative: isLikelyAI ? 70 : 50, explanation: 'Frequency distribution analyzed.' }
+    { stage: 'Camera Check', delta: extractedMeta?.hasExif ? 8 : -5, cumulative: extractedMeta?.hasExif ? 58 : 45, explanation: 'Finished checking for camera info.' },
+    { stage: 'AI Artifact Scan', delta: isLikelyAI ? 15 : -5, cumulative: isLikelyAI ? 70 : 50, explanation: 'Finished scanning for artificial patterns.' }
   ];
 
   const confidenceGaps: AnalysisResult['confidenceGaps'] = [
-    { id: 'g1', condition: 'Camera Source', impact: '+12%', recommendation: 'Provide original EXIF headers.', status: extractedMeta?.hasExif ? 'present' : 'missing' }
+    { id: 'g1', condition: 'Original Camera Info', impact: '+12%', recommendation: 'Provide the original file straight from the camera.', status: extractedMeta?.hasExif ? 'present' : 'missing' }
   ];
 
   return {

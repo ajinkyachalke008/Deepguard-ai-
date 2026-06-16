@@ -180,7 +180,7 @@ export default function AnalyzePage() {
     }
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
+    // Removed URL.revokeObjectURL(url) to allow the blob to persist during SPA navigation to the report page.
   }, [file]);
 
   const handleExportHistory = () => {
@@ -502,7 +502,7 @@ export default function AnalyzePage() {
           demoProfileRef.current!,
           file.name,
           fileUrl,
-          previewUrl || fileUrl
+          thumbnailUrl || previewUrl || fileUrl
         );
         cacheDemoAnalysis(demoAnalysis);
         finalAnalysisId = demoAnalysis.id;
