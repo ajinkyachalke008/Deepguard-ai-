@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Upload, FileVideo, FileImage, X, AlertCircle, Clock, Download, Search, Layers, ArrowLeft, Eye, Trash2, FileCheck, Hash, Terminal } from 'lucide-react';
+import { Shield, Upload, FileVideo, FileImage, X, AlertCircle, Clock, Download, Search, Layers, ArrowLeft, Eye, Trash2, FileCheck, Hash, Terminal, Folder, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
@@ -598,167 +598,175 @@ export default function AnalyzePage() {
                     transition={getTransition(MOTION.durationFast, 0.1)}
                     className="text-center w-full"
                   >
-                    <LampContainer className="min-h-[40vh]">
-                      <motion.div
-                        initial={{ opacity: 0.5, y: 100 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
-                        className="z-50 relative"
-                      >
-                        <MagnifyingText text="Media Analysis" />
-                      </motion.div>
-                      <p className="text-muted-foreground text-lg text-center mt-28 z-50 relative">
-                        Upload a video or image for frame-by-frame forensic analysis.
+                    <div className="w-full flex flex-col items-center justify-center mb-8 z-50 relative mt-16">
+                      <p className="text-muted-foreground text-lg text-center">
+                        Upload a video or image for <span className="text-primary font-medium">frame-by-frame</span> forensic analysis.
                       </p>
-                    </LampContainer>
-                  </motion.div>
-
-                  {/* Upload Container with pulsing glass border */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={getTransition(MOTION.durationReveal, 0.2)}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    className={`
-                      relative border-2 border-dashed rounded-[2rem] p-12 transition-all duration-500
-                      ${isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-white/10 glass hover:border-primary/50'}
-                      flex flex-col items-center justify-center gap-6 min-h-[400px]
-                    `}
-                  >
-                    {/* Faint circuit grid background */}
-                    <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none">
-                      <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                          <pattern id="circuit-grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-                            <path d="M0 20h40M20 0v40" stroke="currentColor" strokeWidth="0.5" fill="none" className="text-primary"/>
-                            <circle cx="20" cy="20" r="2" fill="currentColor" className="text-primary"/>
-                          </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#circuit-grid)" />
-                      </svg>
                     </div>
 
-                    {/* Pulsing border glow when dragging */}
-                    {isDragging && (
-                      <motion.div
-                        className="absolute inset-0 rounded-[2rem] border-2 border-primary/50"
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                      />
-                    )}
-
-                    {!file ? (
-                      <>
-                        {/* Upload icon with slow ambient rotation */}
-                        <motion.div 
-                          className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary relative"
-                          animate={prefersReducedMotion ? {} : { rotate: [0, 360] }}
-                          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                        >
-                          <Upload className="w-10 h-10" />
-                          <motion.div
-                            className="absolute inset-0 rounded-full border border-primary/20"
-                            animate={prefersReducedMotion ? {} : { scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
-                            transition={{ duration: 3, repeat: Infinity }}
-                          />
-                        </motion.div>
-                        
-                        <div className="text-center space-y-2">
-                          <p className="text-xl font-medium">Drop your media here</p>
-                          <p className="text-muted-foreground">MP4, MOV, JPG, PNG or WEBP (max 200MB)</p>
+                    {/* Upload Container with pulsing glass border */}
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={getTransition(MOTION.durationReveal, 0.2)}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      className="relative w-full max-w-4xl mx-auto rounded-3xl p-[1px] bg-gradient-to-br from-primary/30 via-transparent to-primary/10 shadow-[0_0_50px_rgba(0,255,255,0.05)] transition-all duration-500 hover:shadow-[0_0_60px_rgba(0,255,255,0.1)]"
+                    >
+                      <div className="absolute inset-0 bg-[#060B14]/90 rounded-3xl backdrop-blur-xl" />
+                      
+                      <div className={`
+                        relative border border-dashed rounded-[calc(1.5rem-1px)] p-12 flex flex-col items-center justify-center gap-6 min-h-[400px] transition-all duration-500
+                        ${isDragging ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-primary/20 hover:border-primary/50'}
+                      `}>
+                        {/* Faint circuit grid background */}
+                        <div className="absolute inset-0 overflow-hidden rounded-[calc(1.5rem-1px)] pointer-events-none">
+                          <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                              <pattern id="circuit-grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                                <path d="M0 20h40M20 0v40" stroke="currentColor" strokeWidth="0.5" fill="none" className="text-primary"/>
+                                <circle cx="20" cy="20" r="2" fill="currentColor" className="text-primary"/>
+                              </pattern>
+                            </defs>
+                            <rect width="100%" height="100%" fill="url(#circuit-grid)" />
+                          </svg>
                         </div>
-                        
-                        {error && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex items-center gap-2 text-forensic-red text-sm font-medium bg-forensic-red/10 px-4 py-2 rounded-full border border-forensic-red/20"
-                          >
-                            <AlertCircle className="w-4 h-4" />
-                            {error}
-                          </motion.div>
+
+                        {/* Pulsing border glow when dragging */}
+                        {isDragging && (
+                          <motion.div
+                            className="absolute inset-0 rounded-[calc(1.5rem-1px)] border border-primary/50"
+                            animate={{ opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          />
                         )}
 
-                        <div className="flex flex-col gap-4 items-center">
-                          <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
-                            <Button 
-                              variant="secondary" 
-                              className="rounded-full px-8"
-                              onClick={() => fileInputRef.current?.click()}
-                            >
-                              Browse Files
-                            </Button>
-                          </motion.div>
-                          <input 
-                            ref={fileInputRef}
-                            type="file" 
-                            className="hidden" 
-                            accept="video/mp4,video/quicktime,video/x-matroska,video/webm,image/jpeg,image/png,image/webp,image/heic,image/heif" 
-                            onChange={handleFileChange} 
-                          />
-                          
-                          <div className="flex items-center gap-4 mt-4">
-                            <span className="text-xs text-muted-foreground uppercase tracking-widest">Or try a demo case:</span>
-                            <div className="flex gap-2">
-                              <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
-                                <Button variant="outline" size="sm" onClick={() => selectDemo('video')} className="rounded-full h-8 text-xs glass hover:border-primary/30">
-                                  Deepfake Video
-                                </Button>
-                              </motion.div>
-                              <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
-                                <Button variant="outline" size="sm" onClick={() => selectDemo('image')} className="rounded-full h-8 text-xs glass hover:border-primary/30">
-                                  AI Image
-                                </Button>
-                              </motion.div>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="w-full space-y-6"
-                      >
-                        <div className="flex items-center justify-between glass p-6 rounded-2xl border-primary/20">
-                          <div className="flex items-center gap-4">
+                        {!file ? (
+                          <>
+                            {/* Circle Icon */}
                             <motion.div 
-                              className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary"
-                              animate={{ scale: [1, 1.05, 1] }}
-                              transition={{ duration: 2, repeat: Infinity }}
+                              className="w-24 h-24 rounded-full border border-primary/50 text-primary flex items-center justify-center relative mb-2"
+                              whileHover={{ scale: 1.05 }}
                             >
-                              {file.type.startsWith('video') ? <FileVideo className="w-6 h-6" /> : <FileImage className="w-6 h-6" />}
+                              <div className="absolute inset-0 bg-primary/10 rounded-full" />
+                              <Upload className="w-10 h-10 relative z-10" />
                             </motion.div>
-                            <div>
-                              <p className="font-medium truncate max-w-[200px] md:max-w-md">{file.name}</p>
-                              <p className="text-sm text-muted-foreground">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                            
+                            <div className="text-center">
+                              <h3 className="text-[26px] font-medium text-white mb-2">Drop your <span className="text-primary">media</span> here</h3>
+                              <p className="text-[#8892B0] text-sm">MP4, MOV, JPG, PNG or WEBP (max 200MB)</p>
                             </div>
-                          </div>
-                          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                            <Button variant="ghost" size="icon" onClick={() => setFile(null)} className="rounded-full">
-                              <X className="w-5 h-5" />
-                            </Button>
-                          </motion.div>
-                        </div>
+                            
+                            {error && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-2 text-forensic-red text-sm font-medium bg-forensic-red/10 px-4 py-2 rounded-full border border-forensic-red/20 z-10"
+                              >
+                                <AlertCircle className="w-4 h-4" />
+                                {error}
+                              </motion.div>
+                            )}
 
-                        <div className="glass p-6 rounded-2xl border-white/5 space-y-4">
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            <AlertCircle className="w-4 h-4 text-primary" />
-                            <span>Analysis will be performed on our local forensic engine. No data is stored permanently.</span>
-                          </div>
-                          <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
-                            <Button 
-                              onClick={startAnalysis} 
-                              className="w-full rounded-full py-6 text-lg font-bold shadow-[0_0_20px_rgba(0,255,255,0.2)] hover:shadow-[0_0_30px_rgba(0,255,255,0.4)] transition-all duration-300"
-                            >
-                              Start Forensic Analysis
-                            </Button>
+                            <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} className="z-10 mt-2">
+                              <button 
+                                className="flex items-center gap-2 bg-[#0A1122]/90 border border-white/10 hover:border-primary/50 text-white rounded-full px-8 py-3 text-sm transition-all shadow-[0_0_20px_rgba(0,255,255,0.05)] hover:shadow-[0_0_30px_rgba(0,255,255,0.15)]"
+                                onClick={() => fileInputRef.current?.click()}
+                              >
+                                <Folder className="w-4 h-4 text-primary" /> Browse Files
+                              </button>
+                            </motion.div>
+                            
+                            <input 
+                              ref={fileInputRef}
+                              type="file" 
+                              className="hidden" 
+                              accept="video/mp4,video/quicktime,video/x-matroska,video/webm,image/jpeg,image/png,image/webp,image/heic,image/heif" 
+                              onChange={handleFileChange} 
+                            />
+                            
+                            <div className="w-full flex items-center mt-12 mb-6 max-w-xl mx-auto z-10">
+                              <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-primary/50" />
+                              <span className="px-4 text-[10px] tracking-[0.2em] text-[#8892B0] uppercase">Or try a demo case:</span>
+                              <div className="flex-1 h-[1px] bg-gradient-to-r from-purple-500/50 via-purple-500/30 to-transparent" />
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-6 w-full max-w-2xl mx-auto z-10">
+                              {/* Left card */}
+                              <button onClick={() => selectDemo('video')} className="flex-1 flex items-center gap-4 border border-[#FFD700]/30 bg-[#FFD700]/5 hover:bg-[#FFD700]/10 rounded-xl p-4 text-left transition-all shadow-[0_0_15px_rgba(255,215,0,0.05)] hover:shadow-[0_0_20px_rgba(255,215,0,0.15)] group">
+                                <div className="w-12 h-12 flex items-center justify-center border border-[#FFD700]/40 group-hover:border-[#FFD700]/70 rounded-lg text-[#FFD700] transition-colors">
+                                  <FileVideo className="w-6 h-6" />
+                                </div>
+                                <div>
+                                  <h4 className="text-[#FFD700] font-medium text-[15px] mb-0.5">Deepfake Video</h4>
+                                  <p className="text-[#8892B0] text-xs">Real-world manipulated clip</p>
+                                </div>
+                              </button>
+
+                              {/* Right card */}
+                              <button onClick={() => selectDemo('image')} className="flex-1 flex items-center gap-4 border border-[#FFD700]/30 bg-[#FFD700]/5 hover:bg-[#FFD700]/10 rounded-xl p-4 text-left transition-all shadow-[0_0_15px_rgba(255,215,0,0.05)] hover:shadow-[0_0_20px_rgba(255,215,0,0.15)] group">
+                                <div className="w-12 h-12 flex items-center justify-center border border-[#FFD700]/40 group-hover:border-[#FFD700]/70 rounded-lg text-[#FFD700] transition-colors">
+                                  <FileImage className="w-6 h-6" />
+                                </div>
+                                <div>
+                                  <h4 className="text-[#FFD700] font-medium text-[15px] mb-0.5">AI Image</h4>
+                                  <p className="text-[#8892B0] text-xs">AI generated image sample</p>
+                                </div>
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="w-full space-y-6 z-10"
+                          >
+                            <div className="flex items-center justify-between bg-[#0A1122]/90 p-6 rounded-2xl border border-primary/20 shadow-[0_0_20px_rgba(0,255,255,0.05)]">
+                              <div className="flex items-center gap-4">
+                                <motion.div 
+                                  className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20"
+                                  animate={{ scale: [1, 1.05, 1] }}
+                                  transition={{ duration: 2, repeat: Infinity }}
+                                >
+                                  {file.type.startsWith('video') ? <FileVideo className="w-6 h-6" /> : <FileImage className="w-6 h-6" />}
+                                </motion.div>
+                                <div>
+                                  <p className="font-medium text-white truncate max-w-[200px] md:max-w-md">{file.name}</p>
+                                  <p className="text-sm text-[#8892B0]">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                </div>
+                              </div>
+                              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                <Button variant="ghost" size="icon" onClick={() => setFile(null)} className="rounded-full text-[#8892B0] hover:text-white">
+                                  <X className="w-5 h-5" />
+                                </Button>
+                              </motion.div>
+                            </div>
+
+                            <div className="bg-[#0A1122]/90 p-6 rounded-2xl border border-white/5 space-y-4">
+                              <div className="flex items-center gap-3 text-sm text-[#8892B0]">
+                                <AlertCircle className="w-4 h-4 text-primary" />
+                                <span>Analysis will be performed on our local forensic engine. No data is stored permanently.</span>
+                              </div>
+                              <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
+                                <Button 
+                                  onClick={startAnalysis} 
+                                  className="w-full rounded-full py-6 text-lg font-bold bg-primary text-primary-foreground shadow-[0_0_20px_rgba(0,255,255,0.2)] hover:shadow-[0_0_30px_rgba(0,255,255,0.4)] transition-all duration-300"
+                                >
+                                  Start Forensic Analysis
+                                </Button>
+                              </motion.div>
+                            </div>
                           </motion.div>
-                        </div>
-                      </motion.div>
-                    )}
+                        )}
+                      </div>
+                    </motion.div>
+
+                    {/* Security Badge */}
+                    <div className="flex items-center justify-center gap-2 mt-8 text-[#8892B0] text-sm">
+                      <ShieldCheck className="w-5 h-5 text-primary" />
+                      <span>All uploads are <span className="text-primary font-medium">secure, encrypted</span> and auto-deleted after analysis.</span>
+                    </div>
                   </motion.div>
                 </motion.div>
               ) : (
