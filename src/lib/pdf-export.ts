@@ -22,7 +22,7 @@ function formatDate(date: string | Date): string {
   });
 }
 
-export async function generateForensicPDF(analysis: AnalysisResult, analysisId: string): Promise<Blob> {
+export async function generateForensicPDF(analysis: AnalysisResult, analysisId: string, isDemo: boolean = false): Promise<Blob> {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -62,6 +62,14 @@ export async function generateForensicPDF(analysis: AnalysisResult, analysisId: 
   doc.text(`Generated: ${formatDate(new Date())}`, pageWidth - margin - 60, yPos + 4);
   doc.text('IEEE 1711-2022 Compliant', pageWidth - margin - 60, yPos + 8);
 
+  // Demo watermark
+  if (isDemo) {
+    doc.setTextColor(255, 170, 0);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DEMO SIMULATION — FOR TESTING AND DEMONSTRATION PURPOSES ONLY', margin, yPos + 14);
+  }
+
   yPos = 50;
   doc.setDrawColor(40, 40, 40);
   doc.setLineWidth(0.5);
@@ -75,9 +83,15 @@ export async function generateForensicPDF(analysis: AnalysisResult, analysisId: 
 
   yPos += 10;
   
-  const verdictColor = analysis.verdict.severity === 'high' 
+  const activeVerdict = analysis.aiInterpretation?.verdict || analysis.verdict;
+  const activeSignals = analysis.aiInterpretation?.signals || analysis.signals;
+  
+  const score = activeVerdict.score;
+  const severity: 'low' | 'mid' | 'high' = score > 65 ? 'high' : score > 35 ? 'mid' : 'low';
+  
+  const verdictColor = severity === 'high' 
     ? [255, 0, 85] 
-    : analysis.verdict.severity === 'mid' 
+    : severity === 'mid' 
       ? [255, 170, 0] 
       : [0, 255, 170];
   
@@ -87,11 +101,11 @@ export async function generateForensicPDF(analysis: AnalysisResult, analysisId: 
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text(`VERDICT: ${analysis.verdict.label.toUpperCase()}`, margin + 10, yPos + 10);
+  doc.text(`VERDICT: ${activeVerdict.label.toUpperCase()}`, margin + 10, yPos + 10);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Confidence: ${analysis.verdict.confidence.toFixed(1)}% | Score: ${analysis.verdict.score.toFixed(1)}%`, margin + 10, yPos + 18);
+  doc.text(`Confidence: ${activeVerdict.confidence.toFixed(1)}% | Score: ${activeVerdict.score.toFixed(1)}%`, margin + 10, yPos + 18);
 
   yPos += 35;
   
@@ -128,10 +142,10 @@ export async function generateForensicPDF(analysis: AnalysisResult, analysisId: 
   yPos += 10;
   
   const signals = [
-    { name: 'GAN Texture Artifacts', value: analysis.signals.ganArtifacts },
-    { name: 'Spectral Anomaly', value: analysis.signals.spectralAnomaly },
-    { name: 'Anatomical Inconsistency', value: analysis.signals.anatomicalInconsistency },
-    { name: 'Lighting Consistency', value: analysis.signals.lightingConsistency },
+    { name: 'GAN Texture Artifacts', value: activeSignals.ganArtifacts },
+    { name: 'Spectral Anomaly', value: activeSignals.spectralAnomaly },
+    { name: 'Anatomical Inconsistency', value: activeSignals.anatomicalInconsistency },
+    { name: 'Lighting Consistency', value: activeSignals.lightingConsistency },
     { name: 'Metadata Integrity', value: analysis.signals.metadataIntegrity },
   ];
 

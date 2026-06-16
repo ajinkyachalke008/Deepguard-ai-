@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { AlertTriangle, ShieldAlert, Info } from 'lucide-react';
 
 interface TrustWarningProps {
@@ -23,7 +24,7 @@ export function TrustWarning({ verdictLabel, confidence }: TrustWarningProps) {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="overflow-hidden"
     >
-      <Card className="glass border-yellow-500/30 bg-yellow-500/5 p-4 rounded-2xl flex items-start gap-4 mb-6 shadow-[0_0_20px_rgba(234,179,8,0.1)]">
+      <SpotlightCard className="border-yellow-500/30 bg-yellow-500/5 p-4 flex items-start gap-4 mb-6 shadow-[0_0_20px_rgba(234,179,8,0.1)]">
         <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
           <ShieldAlert className="w-5 h-5 text-yellow-500" />
         </div>
@@ -46,7 +47,7 @@ export function TrustWarning({ verdictLabel, confidence }: TrustWarningProps) {
             </div>
           </div>
         </div>
-      </Card>
+      </SpotlightCard>
     </motion.div>
   );
 }

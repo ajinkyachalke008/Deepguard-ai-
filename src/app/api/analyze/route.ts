@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         fileUrl,
         entropySample,
         thumbnailUrl,
-        c2paResult,
+        c2paResult: c2paResult as any,
         ganScore,
         spectralScore
       });

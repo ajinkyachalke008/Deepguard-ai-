@@ -57,7 +57,7 @@ export function ScrambleText({
   }, [text, duration, scrambleSpeed, characters])
 
   useEffect(() => {
-    let interval: NodeJS.Timeout
+    let interval: NodeJS.Timeout | undefined
     const timeout = setTimeout(() => {
       interval = scramble()
     }, delay)

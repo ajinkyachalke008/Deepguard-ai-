@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { 
-  Eye, EyeOff, Info, Layers, ZoomIn, Target, HelpCircle, Activity
+  Eye, EyeOff, Info, Layers, ZoomIn, Target, HelpCircle, Activity,
+  Scan, Crosshair, Cpu
 } from 'lucide-react';
 import {
   Tooltip,
@@ -33,6 +35,7 @@ interface ExplainabilityHeatmapProps {
   frameNumber?: number;
   regions?: HeatmapRegion[];
   onRegionClick?: (region: HeatmapRegion) => void;
+  demoString?: string;
 }
 
 const DEFAULT_REGIONS: HeatmapRegion[] = [
@@ -64,6 +67,7 @@ export function ExplainabilityHeatmap({
   frameNumber = 1,
   regions = DEFAULT_REGIONS,
   onRegionClick,
+  demoString,
 }: ExplainabilityHeatmapProps) {
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [opacity, setOpacity] = useState(65);
@@ -71,9 +75,20 @@ export function ExplainabilityHeatmap({
   const [hoveredRegion, setHoveredRegion] = useState<HeatmapRegion | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<HeatmapRegion | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [visionMode, setVisionMode] = useState<'standard'|'xray'|'thermal'>('standard');
+  const [scanEffect, setScanEffect] = useState({ duration: 3, delay: 0, height: 2, direction: 1, color: 'rgb(0, 255, 255)' });
 
   useEffect(() => {
     setMounted(true);
+    // Randomize the scanline speed, height, direction, and hue each time it loads
+    const colors = ['rgb(0, 255, 255)', 'rgb(255, 59, 48)', 'rgb(234, 179, 8)', 'rgb(168, 85, 247)'];
+    setScanEffect({
+      duration: 2 + Math.random() * 3,
+      delay: Math.random() * 1.5,
+      height: 1 + Math.random() * 3,
+      direction: Math.random() > 0.5 ? 1 : -1,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    });
   }, []);
 
   const getIntensityColor = (intensity: number) => {
@@ -88,10 +103,19 @@ export function ExplainabilityHeatmap({
     [regions, threshold]
   );
 
+  const getVisionClasses = () => {
+    if (!showHeatmap) return '';
+    switch (visionMode) {
+      case 'xray': return 'invert contrast-150 grayscale brightness-125 hue-rotate-180 mix-blend-exclusion';
+      case 'thermal': return 'sepia contrast-[200%] hue-rotate-[280deg] saturate-[300%] brightness-75';
+      default: return 'brightness-75 contrast-110 saturate-[80%]';
+    }
+  };
+
   if (!mounted) return null;
 
   return (
-    <Card className="glass rounded-[2rem] border-white/5 overflow-hidden">
+    <SpotlightCard className="overflow-hidden p-0">
       <div className="p-4 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -114,14 +138,47 @@ export function ExplainabilityHeatmap({
                 </Tooltip>
               </TooltipProvider>
             </h3>
+            {demoString && (
+              <Badge variant="outline" className="mt-1 mb-1 bg-primary/10 text-primary border-primary/20 text-[10px]">
+                {demoString}
+              </Badge>
+            )}
             <p className="text-[10px] font-mono text-muted-foreground">
               {mediaType === 'video' ? `FRAME ${frameNumber}` : 'STATIC ANALYSIS'} • GRAD-CAM v2.1
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Vision Mode Toggles */}
+          <div className="flex items-center bg-black/40 rounded-full border border-white/10 p-0.5">
+            <Button 
+              size="sm" 
+              variant={visionMode === 'standard' ? 'default' : 'ghost'} 
+              onClick={() => setVisionMode('standard')}
+              className={`h-6 px-2 text-[9px] rounded-full ${visionMode === 'standard' ? 'bg-primary text-black' : 'text-muted-foreground'}`}
+            >
+              <Scan className="w-3 h-3 mr-1" /> RAW
+            </Button>
+            <Button 
+              size="sm" 
+              variant={visionMode === 'xray' ? 'default' : 'ghost'} 
+              onClick={() => setVisionMode('xray')}
+              className={`h-6 px-2 text-[9px] rounded-full ${visionMode === 'xray' ? 'bg-white text-black' : 'text-muted-foreground'}`}
+            >
+              <Cpu className="w-3 h-3 mr-1" /> X-RAY
+            </Button>
+            <Button 
+              size="sm" 
+              variant={visionMode === 'thermal' ? 'default' : 'ghost'} 
+              onClick={() => setVisionMode('thermal')}
+              className={`h-6 px-2 text-[9px] rounded-full ${visionMode === 'thermal' ? 'bg-orange-500 text-black' : 'text-muted-foreground'}`}
+            >
+              <Activity className="w-3 h-3 mr-1" /> THERMAL
+            </Button>
+          </div>
+
           <Badge variant="outline" className="bg-white/5 border-white/10 text-[10px] font-mono">
-            {regions.length} REGIONS
+            {filteredRegions.length} REGIONS
           </Badge>
           <Button 
             size="sm" 
@@ -135,11 +192,14 @@ export function ExplainabilityHeatmap({
         </div>
       </div>
 
-      <div className="relative aspect-video bg-zinc-950">
+      <div className="relative aspect-video bg-black overflow-hidden group">
+        {/* Animated Scanner Grid Overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.03)_1px,transparent_1px)] bg-[size:4%_4%] pointer-events-none z-10" />
+        
         <img 
           src={imageSrc} 
           alt="Analysis target"
-          className={`w-full h-full object-cover transition-all duration-300 ${showHeatmap ? 'brightness-75 contrast-110' : ''}`}
+          className={`w-full h-full object-cover transition-all duration-700 ease-out ${getVisionClasses()}`}
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             if (target.src !== "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop") {
@@ -169,10 +229,15 @@ export function ExplainabilityHeatmap({
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ 
                       scale: isHovered || isSelected ? 1.05 : 1, 
-                      opacity: 1,
-                      backgroundColor: isHovered ? 'rgba(0, 255, 255, 0.2)' : 'transparent'
+                      opacity: [0.8, 1, 0.9, 1],
+                      backgroundColor: isHovered 
+                        ? 'rgba(255, 255, 255, 0.15)' 
+                        : (isHighIntensity ? 'rgba(255, 59, 48, 0.15)' : region.intensity >= 50 ? 'rgba(234, 179, 8, 0.15)' : 'rgba(0, 255, 255, 0.1)')
                     }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    transition={{ 
+                      scale: { type: 'spring', stiffness: 300, damping: 20 },
+                      opacity: { duration: 1.5 + Math.random() * 2, repeat: Infinity, repeatType: 'mirror', ease: "easeInOut" }
+                    }}
                     className={`absolute rounded-xl border border-current pointer-events-auto cursor-pointer group`}
                     style={{
                       left: `${region.x}%`,
@@ -188,39 +253,50 @@ export function ExplainabilityHeatmap({
                       onRegionClick?.(region);
                     }}
                   >
+                    {/* Central Crosshair */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-50">
+                      <Crosshair className="w-6 h-6 border-current opacity-70" />
+                    </div>
+
                     {/* Concentric Ping for High Intensity */}
                     {isHighIntensity && (
                       <motion.div 
-                        animate={{ scale: [1, 1.5], opacity: [0.3, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-                        className="absolute inset-x-0 inset-y-0 rounded-xl border-2 border-current pointer-events-none"
+                        animate={{ scale: [1, 1.4], opacity: [0.6, 0] }}
+                        transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut" }}
+                        className="absolute inset-x-0 inset-y-0 rounded-xl border-2 border-current pointer-events-none shadow-[0_0_15px_currentcolor]"
                       />
                     )}
 
-                    {/* Technical Reticle Corners (Appear on Hover/Select) */}
-                    <AnimatePresence>
-                      {(isHovered || isSelected) && (
-                        <React.Fragment>
-                          <motion.div 
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 0.8 }}
-                            exit={{ scale: 0.5, opacity: 0 }}
-                            className="absolute -top-2 -left-2 w-4 h-4 border-t-2 border-l-2 border-current" 
-                          />
-                          <motion.div 
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 0.8 }}
-                            exit={{ scale: 0.5, opacity: 0 }}
-                            className="absolute -bottom-2 -right-2 w-4 h-4 border-b-2 border-r-2 border-current" 
-                          />
-                        </React.Fragment>
-                      )}
-                    </AnimatePresence>
+                    {/* ALWAYS-ON Technical Reticle Corners */}
+                    <motion.div 
+                      className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-current transition-all" 
+                      animate={{ scale: isHovered || isSelected ? 1.5 : 1, opacity: isHovered || isSelected ? 1 : 0.5 }}
+                    />
+                    <motion.div 
+                      className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-current transition-all" 
+                      animate={{ scale: isHovered || isSelected ? 1.5 : 1, opacity: isHovered || isSelected ? 1 : 0.5 }}
+                    />
+                    <motion.div 
+                      className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-current transition-all" 
+                      animate={{ scale: isHovered || isSelected ? 1.5 : 1, opacity: isHovered || isSelected ? 1 : 0.5 }}
+                    />
+                    <motion.div 
+                      className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-current transition-all" 
+                      animate={{ scale: isHovered || isSelected ? 1.5 : 1, opacity: isHovered || isSelected ? 1 : 0.5 }}
+                    />
 
-                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-black/80 border border-white/20 flex items-center justify-center z-20">
-                      <span className="text-[8px] font-mono font-bold text-white">{region.intensity}</span>
-                    </div>
+                    {/* ALWAYS-ON Floating Forensic Suspect Label */}
+                    <motion.div
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/90 border border-current px-2 py-0.5 rounded shadow-[0_0_10px_currentcolor] flex items-center gap-1.5 z-30 pointer-events-none"
+                    >
+                      <Target className="w-3 h-3 animate-pulse" />
+                      <span className="text-[9px] font-black tracking-widest uppercase text-white">{region.label}</span>
+                      <span className="text-[8px] font-mono opacity-80 border-l border-white/20 pl-1">{region.intensity}%</span>
+                    </motion.div>
 
+                    {/* Detailed Tooltip on Hover/Select */}
                     <AnimatePresence>
                       {(isHovered || isSelected) && (
                         <motion.div
@@ -254,9 +330,28 @@ export function ExplainabilityHeatmap({
 
               <div className="absolute inset-0 grid grid-cols-16 grid-rows-9 opacity-10 pointer-events-none">
                 {Array.from({ length: 144 }).map((_, i) => (
-                  <div key={i} className="border border-white/20" />
+                  <motion.div 
+                    key={i} 
+                    className="border border-white/20"
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 3 + Math.random() * 4, repeat: Infinity, delay: Math.random() * 5 }}
+                  />
                 ))}
               </div>
+
+              {/* Dynamic Sweeping Scanline */}
+              <motion.div
+                initial={{ top: scanEffect.direction === 1 ? '-10%' : '110%' }}
+                animate={{ top: scanEffect.direction === 1 ? '110%' : '-10%' }}
+                transition={{ duration: scanEffect.duration, delay: scanEffect.delay, repeat: Infinity, ease: "linear" }}
+                className="absolute left-0 right-0 pointer-events-none z-10"
+                style={{ 
+                  height: `${scanEffect.height}px`,
+                  backgroundColor: scanEffect.color,
+                  opacity: 0.6,
+                  boxShadow: `0 0 ${scanEffect.height * 8}px ${scanEffect.color}, 0 0 ${scanEffect.height * 2}px white`
+                }}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -314,23 +409,56 @@ export function ExplainabilityHeatmap({
             <Badge variant="outline" className="text-[8px] bg-primary/10 border-primary/20">{filteredRegions.length} Active</Badge>
           </div>
 
-          <div className="space-y-3 max-h-48 overflow-y-auto pr-2 scrollbar-thin">
+          <div className="space-y-3 max-h-56 overflow-y-auto pr-2 scrollbar-thin">
             {filteredRegions.map((region) => {
               const colors = getIntensityColor(region.intensity);
               const isSelected = selectedRegion?.id === region.id;
               return (
                 <div 
                   key={region.id}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                    isSelected ? 'bg-primary/5 border-primary/30' : 'bg-white/5 border-white/5 hover:border-white/10'
+                  className={`p-4 rounded-xl border transition-all cursor-pointer relative overflow-hidden group ${
+                    isSelected ? 'bg-primary/5 border-primary/30 shadow-[0_0_20px_rgba(0,255,255,0.1)]' : 'bg-white/5 border-white/5 hover:border-white/20'
                   }`}
                   onClick={() => setSelectedRegion(isSelected ? null : region)}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-[11px] font-bold ${colors.text}`}>{region.label}</span>
-                    <span className="text-[10px] font-mono opacity-60">{region.intensity}%</span>
+                  {isSelected && (
+                    <motion.div 
+                      layoutId="heatmap-selection"
+                      className="absolute inset-y-0 left-0 w-1 bg-primary"
+                    />
+                  )}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Target className={`w-3.5 h-3.5 ${colors.text}`} />
+                      <span className={`text-[11px] font-black uppercase tracking-wide ${colors.text}`}>{region.label}</span>
+                    </div>
+                    <Badge variant="outline" className={`text-[9px] font-mono font-bold ${colors.text} border-${colors.text}/20 bg-black/50`}>
+                      {region.intensity}% SIGNAL
+                    </Badge>
                   </div>
-                  <p className="text-[9px] text-muted-foreground leading-tight">{region.explanation}</p>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed pl-5">
+                    {region.explanation}
+                  </p>
+                  
+                  <AnimatePresence>
+                    {isSelected && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-3 pt-3 border-t border-white/10 pl-5 space-y-2"
+                      >
+                        <div className="flex justify-between items-center text-[9px] font-mono text-muted-foreground uppercase">
+                          <span>Confidence Impact</span>
+                          <span className={region.intensity > 80 ? 'text-forensic-red' : 'text-primary'}>High</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[9px] font-mono text-muted-foreground uppercase">
+                          <span>Detection Vector</span>
+                          <span>GRAD-CAM Attn</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })}
@@ -343,6 +471,6 @@ export function ExplainabilityHeatmap({
           NOTICE: Explainability highlights are not definitive evidence. They indicate model attention areas only.
         </p>
       </div>
-    </Card>
+    </SpotlightCard>
   );
 }

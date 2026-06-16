@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Progress } from '@/components/ui/progress';
 import { 
   Play, Pause, SkipBack, SkipForward, Ghost, Layers, Activity, 
@@ -278,7 +279,7 @@ export function DifferentialFrameAnalysis({
 
   if (isAnalyzing) {
     return (
-      <Card className="glass rounded-[2rem] border-white/5 overflow-hidden">
+      <SpotlightCard className="rounded-[2rem] overflow-hidden">
         <div className="p-8 flex flex-col items-center justify-center gap-6 min-h-[400px]">
           <motion.div
             animate={{ rotate: 360 }}
@@ -302,7 +303,7 @@ export function DifferentialFrameAnalysis({
             </p>
           </div>
         </div>
-      </Card>
+      </SpotlightCard>
     );
   }
 
@@ -312,7 +313,7 @@ export function DifferentialFrameAnalysis({
 
   if (analysisError) {
     return (
-      <Card className="glass rounded-[2rem] border-white/5 overflow-hidden">
+      <SpotlightCard className="rounded-[2rem] overflow-hidden">
         <div className="p-8 flex flex-col items-center justify-center gap-4 min-h-[200px]">
           <AlertTriangle className="w-10 h-10 text-forensic-red" />
           <div className="text-center space-y-1">
@@ -320,7 +321,7 @@ export function DifferentialFrameAnalysis({
             <p className="text-[10px] font-mono text-muted-foreground max-w-xs">{analysisError}</p>
           </div>
         </div>
-      </Card>
+      </SpotlightCard>
     );
   }
 
@@ -332,9 +333,9 @@ export function DifferentialFrameAnalysis({
   const isRealData = !!realFrameResult;
 
   return (
-    <Card className="glass rounded-[2rem] border-white/5 overflow-hidden">
+    <SpotlightCard className="rounded-[2rem] overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-white/5 flex items-center justify-between">
+      <div className="p-4 border-b flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
             <Ghost className="w-4 h-4 text-primary" />
@@ -479,10 +480,10 @@ export function DifferentialFrameAnalysis({
 
         {/* Frame info badges */}
         <div className="absolute top-3 left-3 flex gap-2">
-          <Badge variant="outline" className="glass border-white/20 px-2 py-1 text-[9px] font-mono">
+          <Badge variant="outline" className="border-white/20 px-2 py-1 text-[9px] font-mono">
             FRAME {currentFrame}/{frameData.length}
           </Badge>
-          <Badge variant="outline" className="glass border-white/20 px-2 py-1 text-[9px] font-mono">
+          <Badge variant="outline" className="border-white/20 px-2 py-1 text-[9px] font-mono">
             {formatTimestamp(currentFrame)}
           </Badge>
         </div>
@@ -538,7 +539,7 @@ export function DifferentialFrameAnalysis({
       </div>
 
       {/* Playback Controls & Timeline */}
-      <div className="p-4 border-t border-white/5 space-y-4">
+      <div className="p-4 border-t space-y-4">
         <div className="flex items-center gap-3">
           <Button 
             size="sm" 
@@ -590,7 +591,7 @@ export function DifferentialFrameAnalysis({
         </div>
 
         {/* Instability waveform */}
-        <div className="relative h-16 w-full bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+        <div className="relative h-16 w-full rounded-xl border border-white/10 overflow-hidden">
           <svg className="w-full h-full" preserveAspectRatio="none" viewBox={`0 0 ${frameData.length} 100`}>
             <defs>
               <linearGradient id="instabilityGradient" x1="0" y1="0" x2="0" y2="1">
@@ -647,9 +648,9 @@ export function DifferentialFrameAnalysis({
         </div>
       </div>
 
-      <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-white/5">
+      <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 border-t">
         <div className="space-y-6">
-          <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground uppercase tracking-widest bg-white/5 p-2 rounded-lg">
+          <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground uppercase tracking-widest p-2 rounded-lg">
             <span>Macro-Pixel Analytics</span>
             <Layers className="w-3 h-3" />
           </div>
@@ -702,23 +703,23 @@ export function DifferentialFrameAnalysis({
                </svg>
             )}
 
-            <div className="absolute bottom-2 left-2 text-[8px] font-mono glass px-2 py-1 rounded">
+            <div className="absolute bottom-2 left-2 text-[8px] font-mono px-2 py-1 rounded">
               SECTOR ANALYSIS: {currentFrameData?.instabilityScore > 50 ? 'Erratic' : 'Stable'}
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-             <div className="p-2 rounded-lg bg-white/5 border border-white/5 text-center">
+             <div className="p-2 rounded-lg border text-center">
               <div className="text-[8px] font-mono text-muted-foreground uppercase">Displacement</div>
               <div className="text-xs font-bold text-white">
                 {(currentFrameData?.landmarks.reduce((a, b) => a + b.displacement, 0) / (currentFrameData?.landmarks.length || 1)).toFixed(2)}px
               </div>
             </div>
-            <div className="p-2 rounded-lg bg-white/5 border border-white/5 text-center">
+            <div className="p-2 rounded-lg border text-center">
               <div className="text-[8px] font-mono text-muted-foreground uppercase">Ghosting</div>
               <div className="text-xs font-bold text-white">{currentFrameData?.ghostIntensity.toFixed(0)}%</div>
             </div>
-            <div className="p-2 rounded-lg bg-white/5 border border-white/5 text-center">
+            <div className="p-2 rounded-lg border text-center">
               <div className="text-[8px] font-mono text-muted-foreground uppercase">Jitter</div>
               <div className="text-xs font-bold text-white">{currentFrameData?.instabilityScore > 70 ? 'High' : 'Low'}</div>
             </div>
@@ -726,7 +727,7 @@ export function DifferentialFrameAnalysis({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground uppercase tracking-widest bg-white/5 p-2 rounded-lg">
+          <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground uppercase tracking-widest p-2 rounded-lg">
             <span>Anomalous Sequences</span>
             <Badge variant="outline" className="text-[8px] bg-forensic-red/10 border-forensic-red/20 text-forensic-red">{anomalousRegions.length} Detected</Badge>
           </div>
@@ -735,7 +736,7 @@ export function DifferentialFrameAnalysis({
             {anomalousRegions.map((region, i) => (
               <div 
                 key={i}
-                className="p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-all cursor-pointer group"
+                className="p-3 rounded-xl border hover:border-white/10 transition-all cursor-pointer group"
                 onClick={() => handleFrameClick(region.start + 1)}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -763,13 +764,13 @@ export function DifferentialFrameAnalysis({
         </div>
       </div>
 
-      <div className="p-3 border-t border-white/5 bg-primary/5">
+      <div className="p-3 border-t bg-primary/5">
         <p className="text-[10px] text-primary/80 text-center font-mono uppercase tracking-tighter">
           {isRealData 
             ? 'TEMPORAL INTEGRITY SCAN: All sequences analyzed for BT.601 luminance drift and macro-pixel jitter.'
             : 'SIGNAL NOTICE: Low-quality encoding or VFR media may trigger false-positive jitter detections.'}
         </p>
       </div>
-    </Card>
+    </SpotlightCard>
   );
 }

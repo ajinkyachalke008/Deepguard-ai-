@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
@@ -103,7 +104,7 @@ export function PixelComparator({ originalSrc, suspectSrc }: PixelComparatorProp
   }, [originalSrc, suspectSrc, calculateDelta]);
 
   return (
-    <Card className="glass rounded-[2rem] border-white/5 overflow-hidden">
+    <SpotlightCard className="overflow-hidden p-0">
       <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -226,6 +227,6 @@ export function PixelComparator({ originalSrc, suspectSrc }: PixelComparatorProp
           </div>
         </div>
       </div>
-    </Card>
+    </SpotlightCard>
   );
 }

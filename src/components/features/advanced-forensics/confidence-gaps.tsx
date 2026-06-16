@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Badge } from '@/components/ui/badge';
 import { HelpCircle, CheckCircle2, AlertCircle, ArrowUpRight } from 'lucide-react';
 
@@ -20,7 +21,7 @@ interface ConfidenceGapsProps {
 
 export function ConfidenceGaps({ gaps }: ConfidenceGapsProps) {
   return (
-    <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-4">
+    <SpotlightCard className="p-6 rounded-[2rem] space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-2">
           <HelpCircle className="w-4 h-4 text-primary" />
@@ -42,7 +43,7 @@ export function ConfidenceGaps({ gaps }: ConfidenceGapsProps) {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="p-3 rounded-2xl bg-white/5 border border-white/5 group hover:border-primary/20 transition-colors"
+            className="p-3 border group hover:border-primary/20 transition-colors"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
@@ -74,6 +75,6 @@ export function ConfidenceGaps({ gaps }: ConfidenceGapsProps) {
           </motion.div>
         ))}
       </div>
-    </Card>
+    </SpotlightCard>
   );
 }

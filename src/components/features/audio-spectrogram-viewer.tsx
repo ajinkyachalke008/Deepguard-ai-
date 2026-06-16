@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -39,7 +40,7 @@ export function AudioSpectrogramViewer({ audioUrl }: AudioSpectrogramViewerProps
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | null>(null);
 
   const startAnalysis = useCallback(async () => {
     if (!audioUrl) return;
@@ -119,7 +120,7 @@ export function AudioSpectrogramViewer({ audioUrl }: AudioSpectrogramViewerProps
   };
 
   return (
-    <Card className="glass rounded-[2rem] border-white/5 overflow-hidden">
+    <SpotlightCard className="overflow-hidden p-0">
       <div className="p-6 border-b border-white/5 flex items-center justify-between bg-primary/5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -221,6 +222,6 @@ export function AudioSpectrogramViewer({ audioUrl }: AudioSpectrogramViewerProps
           </p>
         </div>
       </div>
-    </Card>
+    </SpotlightCard>
   );
 }

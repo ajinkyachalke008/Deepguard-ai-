@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { 
@@ -53,6 +54,7 @@ interface C2PAVerificationProps {
   fileData?: string;
   fileName?: string;
   onStatusChange?: (status: C2PAStatus, manifest: C2PAManifest) => void;
+  demoString?: string;
 }
 
 const DEMO_VERIFIED: C2PAManifest = {
@@ -104,6 +106,7 @@ export function C2PAVerification({
   fileData,
   fileName,
   onStatusChange,
+  demoString,
 }: C2PAVerificationProps) {
   const [mounted, setMounted] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -227,11 +230,14 @@ export function C2PAVerification({
   };
 
   const statusConfig = getStatusConfig(manifest.status);
+  if (demoString) {
+    statusConfig.label = demoString;
+  }
 
   if (!mounted) return null;
 
   return (
-    <Card className="glass rounded-[2rem] border-white/5 overflow-hidden">
+    <SpotlightCard className="overflow-hidden p-0">
       <div className="p-4 border-b border-white/5 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -371,20 +377,26 @@ export function C2PAVerification({
                         </Button>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-2">
-                        <div className="space-y-2 p-4 rounded-xl bg-white/5 border border-white/10">
+                        <div className="space-y-0 p-6 rounded-2xl bg-black/40 border border-white/5 relative before:absolute before:inset-y-6 before:left-[39px] before:w-0.5 before:bg-white/10">
                           {manifest.editHistory.map((entry, i) => (
-                            <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                              <div className="flex items-center gap-3">
-                                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-mono text-primary">
+                            <div key={i} className="flex items-start gap-4 py-4 relative group">
+                              <div className="flex flex-col items-center gap-2 relative z-10 mt-1">
+                                <div className="absolute inset-0 bg-primary/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="w-8 h-8 rounded-full bg-black border-2 border-white/20 flex items-center justify-center text-[10px] font-mono text-white/50 group-hover:text-primary group-hover:border-primary/50 transition-colors relative z-10">
                                   {i + 1}
                                 </div>
-                                <div>
-                                  <div className="text-xs font-medium">{entry.action}</div>
-                                  <div className="text-[10px] text-muted-foreground">{entry.tool}</div>
-                                </div>
                               </div>
-                              <div className="text-[10px] font-mono text-muted-foreground">
-                                {new Date(entry.timestamp).toLocaleString()}
+                              <div className="flex-1 space-y-1 p-4 rounded-xl bg-white/5 border border-white/5 group-hover:border-white/10 transition-all">
+                                <div className="flex items-center justify-between">
+                                  <div className="text-sm font-bold text-white tracking-wide">{entry.action}</div>
+                                  <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest bg-black/40 px-2 py-1 rounded-md">
+                                    {new Date(entry.timestamp).toLocaleString()}
+                                  </div>
+                                </div>
+                                <div className="text-[11px] text-muted-foreground flex items-center gap-2 pt-1">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
+                                  Executed via {entry.tool}
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -426,15 +438,27 @@ export function C2PAVerification({
                         </Button>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-2">
-                        <div className="space-y-1 p-4 rounded-xl bg-white/5 border border-white/10">
+                        <div className="space-y-3 p-6 rounded-2xl bg-black/40 border border-white/5 relative">
                           {manifest.certificateChain.map((cert, i) => (
-                            <div key={i} className="flex items-center gap-2 py-1">
-                              <div className={`w-4 h-4 rounded-full flex items-center justify-center ${i === 0 ? 'bg-forensic-green text-black' : 'bg-white/10'}`}>
-                                {i === 0 ? <CheckCircle2 className="w-3 h-3" /> : <div className="w-1.5 h-1.5 rounded-full bg-white/40" />}
+                            <div key={i} className="flex items-center gap-4 py-2 relative group">
+                              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center relative z-10 transition-colors ${
+                                i === 0 ? 'bg-forensic-green/10 border-forensic-green text-forensic-green' : 
+                                'bg-black border-white/20 text-white/40 group-hover:border-primary/50 group-hover:text-primary'
+                              }`}>
+                                {i === 0 ? <ShieldCheck className="w-4 h-4" /> : <div className="w-2 h-2 rounded-full bg-current" />}
                               </div>
-                              <span className="text-xs font-mono">{cert}</span>
+                              <div className={`flex-1 p-3 rounded-xl border transition-all flex justify-between items-center ${
+                                i === 0 ? 'bg-forensic-green/5 border-forensic-green/20' : 'bg-white/5 border-white/5'
+                              }`}>
+                                <span className="text-[11px] font-mono tracking-widest">{cert}</span>
+                                {i === 0 && (
+                                  <Badge variant="outline" className="text-[9px] font-bold border-forensic-green/30 text-forensic-green bg-forensic-green/10 px-2 uppercase">
+                                    Root of Trust
+                                  </Badge>
+                                )}
+                              </div>
                               {i < manifest.certificateChain!.length - 1 && (
-                                <div className="flex-1 border-t border-dashed border-white/10 mx-2" />
+                                <div className="absolute left-4 top-10 bottom-[-24px] w-0.5 bg-gradient-to-b from-white/20 to-transparent" />
                               )}
                             </div>
                           ))}
@@ -474,40 +498,85 @@ export function C2PAVerification({
                       </div>
                     )}
                     
-                    <div className="p-4 rounded-[2rem] bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                          <ShieldCheck className="w-5 h-5" />
+                    {manifest.status === 'verified' && (
+                      <div className="p-4 rounded-[2rem] bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between mt-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                            <ShieldCheck className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-indigo-100">DeepGuard Notary Verified</div>
+                            <div className="text-[9px] font-mono text-indigo-400/80 uppercase">Blockchain Integrity Match: 100%</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-xs font-bold text-indigo-100">DeepGuard Notary Verified</div>
-                          <div className="text-[9px] font-mono text-indigo-400/80 uppercase">Blockchain Integrity Match: 100%</div>
-                        </div>
+                        <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 font-mono text-[8px]">TX: 0x9a...f21</Badge>
                       </div>
-                      <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 font-mono text-[8px]">TX: 0x9a...f21</Badge>
-                    </div>
+                    )}
+
+                    {manifest.status === 'invalid' && (
+                      <div className="p-4 rounded-[2rem] bg-forensic-red/10 border border-forensic-red/20 flex items-center justify-between mt-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-forensic-red/20 flex items-center justify-center text-forensic-red">
+                            <ShieldX className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-red-100">Notary Verification Failed</div>
+                            <div className="text-[9px] font-mono text-red-400/80 uppercase">Blockchain Hash Mismatch Detected</div>
+                          </div>
+                        </div>
+                        <Badge className="bg-forensic-red/20 text-forensic-red border-forensic-red/30 font-mono text-[8px]">TX: ORPHANED</Badge>
+                      </div>
+                    )}
                   </motion.div>
                 </AnimatePresence>
               )}
 
             {manifest.status === 'absent' && (
-              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 text-center space-y-4">
-                <FileWarning className="w-12 h-12 mx-auto text-muted-foreground opacity-50" />
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">No Content Credentials Available</p>
-                  <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                    This media file does not contain C2PA/CAI provenance information. This is common for older media 
-                    or content created with tools that do not support content authenticity standards.
-                  </p>
-                </div>
-                <div className="pt-4 border-t border-white/10">
-                  <button
-                    onClick={() => window.parent.postMessage({ type: "OPEN_EXTERNAL_URL", data: { url: "https://c2pa.org" } }, "*")}
-                    className="inline-flex items-center gap-2 text-xs text-primary hover:underline"
-                  >
-                    Learn more about C2PA
-                    <ExternalLink className="w-3 h-3" />
-                  </button>
+              <div className="p-6 rounded-2xl bg-[#0a0a0a] border border-forensic-orange/20 relative overflow-hidden group">
+                {/* Background scanning effect */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]" />
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-forensic-orange/50 to-transparent group-hover:via-forensic-orange transition-all duration-1000 animate-scanline" />
+
+                <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-forensic-orange/20 blur-xl rounded-full animate-pulse" />
+                    <div className="w-16 h-16 rounded-full border border-forensic-orange/30 bg-forensic-orange/10 flex items-center justify-center relative">
+                      <FileWarning className="w-7 h-7 text-forensic-orange" />
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-black border border-forensic-orange/50 flex items-center justify-center">
+                        <AlertTriangle className="w-3 h-3 text-forensic-orange" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-bold text-forensic-orange tracking-widest uppercase">Provenance Stripped</h4>
+                    <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                      No cryptographic C2PA signature detected. The media's origin data has been intentionally wiped or it was generated by an adversarial network designed to evade origin tracking.
+                    </p>
+                  </div>
+
+                  <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-4" />
+
+                  <div className="grid grid-cols-2 gap-4 w-full">
+                    <div className="p-3 rounded-lg bg-black/50 border border-white/5 text-left space-y-1">
+                      <span className="text-[9px] font-mono text-muted-foreground uppercase">Metadata Integrity</span>
+                      <div className="text-xs font-bold text-forensic-red">COMPROMISED</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-black/50 border border-white/5 text-left space-y-1">
+                      <span className="text-[9px] font-mono text-muted-foreground uppercase">Origin Trace</span>
+                      <div className="text-xs font-bold text-forensic-red">DEAD END</div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      onClick={() => window.parent.postMessage({ type: "OPEN_EXTERNAL_URL", data: { url: "https://c2pa.org" } }, "*")}
+                      className="inline-flex items-center gap-2 text-[10px] font-mono text-forensic-orange/70 hover:text-forensic-orange hover:bg-forensic-orange/10 px-3 py-1.5 rounded transition-colors"
+                    >
+                      [VIEW C2PA INVESTIGATION PROTOCOLS]
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -520,7 +589,7 @@ export function C2PAVerification({
           DISCLAIMER: C2PA provides provenance and integrity information when available. It does not guarantee authenticity or truthfulness.
         </p>
       </div>
-    </Card>
+    </SpotlightCard>
   );
 }
 

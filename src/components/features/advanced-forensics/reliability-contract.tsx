@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, ChevronDown, ChevronUp, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -19,9 +20,9 @@ export function ReliabilityContract({ contract }: ReliabilityContractProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Card className="glass rounded-[2rem] border-white/5 overflow-hidden transition-all duration-500">
+    <SpotlightCard className="rounded-[2rem] overflow-hidden transition-all duration-500">
       <div 
-        className="p-6 cursor-pointer hover:bg-white/5 transition-colors"
+        className="p-6 cursor-pointer hover: transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="flex items-center justify-between mb-4">
@@ -61,13 +62,13 @@ export function ReliabilityContract({ contract }: ReliabilityContractProps) {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="border-t border-white/5 bg-white/5 p-6 space-y-4"
+            className="border-t p-6 space-y-4"
           >
             <div className="space-y-3">
               <h4 className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">Reliability Conditions</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {contract.conditions.map((condition, i) => (
-                  <div key={i} className="flex items-center gap-2 p-2 rounded-xl bg-background/50 border border-white/5">
+                  <div key={i} className="flex items-center gap-2 p-2 rounded-xl bg-background/50 border">
                     <CheckCircle2 className="w-3 h-3 text-forensic-green" />
                     <span className="text-[10px] text-muted-foreground">{condition}</span>
                   </div>
@@ -75,7 +76,7 @@ export function ReliabilityContract({ contract }: ReliabilityContractProps) {
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-start gap-3">
+            <div className="p-4 bg-primary/5 border border-primary/10 flex items-start gap-3">
               <AlertCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <h4 className="text-[10px] font-bold uppercase text-primary">Technical Limitation Notice</h4>
@@ -87,6 +88,6 @@ export function ReliabilityContract({ contract }: ReliabilityContractProps) {
           </motion.div>
         )}
       </AnimatePresence>
-    </Card>
+    </SpotlightCard>
   );
 }

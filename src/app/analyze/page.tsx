@@ -17,6 +17,10 @@ import { analyzeTemporalConsistency } from '@/lib/temporal-engine';
 import { ScrambleText } from '@/components/ui/scramble-text';
 import { detectGanArtifacts } from '@/lib/gan-engine';
 import { analyzeSpectralAnomalies } from '@/lib/spectral-engine';
+import { generateDemoAnalysis, cacheDemoAnalysis } from '@/lib/demo-profiles';
+import { DEMO_SCAN_PHASES, DEMO_TOTAL_DURATION_MS } from '@/lib/demo-scan-phases';
+import { LampContainer } from '@/components/ui/lamp';
+import { MagnifyingText } from '@/components/ui/magnifying-text';
 import { stringToSeed } from '@/lib/deterministic-rng';
 
 // DeepGuard Motion Language tokens
@@ -73,6 +77,49 @@ function FrequencyBars({ isActive }: { isActive: boolean }) {
   );
 }
 
+// Matrix Data Stream for Active Scan
+function MatrixDataStream({ isActive }: { isActive: boolean }) {
+  const [dataLines, setDataLines] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!isActive) return;
+    
+    const generateLine = () => {
+      const hex = Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0').toUpperCase();
+      const mem = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+      const ops = ["CNN_PASS", "GAN_CHK", "FFT_SCAN", "NOISE_EX", "FREQ_ANL", "BLR_MAP"];
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      const stat = Math.random() > 0.85 ? 'ANOMALY' : 'OK';
+      return `0x${hex} [${mem}] ${op} ... ${stat}`;
+    };
+
+    const interval = setInterval(() => {
+      setDataLines(prev => {
+        const newLines = [...prev, generateLine()];
+        if (newLines.length > 25) newLines.shift(); // Keep only last 25 lines
+        return newLines;
+      });
+    }, 80);
+
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  return (
+    <div className="absolute top-0 bottom-0 right-0 w-[180px] overflow-hidden hidden lg:flex flex-col justify-end text-[9px] font-mono text-cyan-400/70 pointer-events-none pb-4 pr-4" style={{ textShadow: "0 0 5px rgba(0,255,255,0.3)" }}>
+      {dataLines.map((line, i) => (
+        <motion.div 
+          key={i} 
+          initial={{ opacity: 0, x: 10 }} 
+          animate={{ opacity: 1, x: 0 }} 
+          className={`whitespace-nowrap text-right ${line.includes('ANOMALY') ? 'text-red-400/90 font-bold' : ''}`}
+        >
+          {line}
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 export default function AnalyzePage() {
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
@@ -91,6 +138,23 @@ export default function AnalyzePage() {
   const [analysisId, setAnalysisId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const demoProfileRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key >= '1' && e.key <= '9') {
+        demoProfileRef.current = parseInt(e.key, 10);
+        toast.success(`Simulation Profile [${e.key}] Locked`, {
+          icon: '🔒',
+          style: { background: '#0a0a0a', color: '#00f2ff', border: '1px solid rgba(0, 242, 255, 0.3)' }
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const historyRaw = localStorage.getItem('deepguard_history');
@@ -430,10 +494,28 @@ export default function AnalyzePage() {
         }
       }
 
+      let finalAnalysisId = analysisId;
+      const isDemo = demoProfileRef.current !== null;
+
+      if (isDemo) {
+        const demoAnalysis = generateDemoAnalysis(
+          demoProfileRef.current!,
+          file.name,
+          fileUrl,
+          previewUrl || fileUrl
+        );
+        cacheDemoAnalysis(demoAnalysis);
+        finalAnalysisId = demoAnalysis.id;
+      }
+
       const reportParams = new URLSearchParams({
-        analysis_id: analysisId,
+        analysis_id: finalAnalysisId || '',
         type: file.type.startsWith('video') ? 'video' : 'image',
       });
+      
+      if (isDemo) {
+        reportParams.append('demo', 'true');
+      }
 
       router.push(`/report?${reportParams.toString()}`);
       
@@ -514,12 +596,21 @@ export default function AnalyzePage() {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={getTransition(MOTION.durationFast, 0.1)}
-                    className="text-center lg:text-left space-y-4"
+                    className="text-center w-full"
                   >
-                    <h1 className="text-4xl font-bold tracking-tight">Media Analysis</h1>
-                    <p className="text-muted-foreground text-lg">
-                      Upload a video or image for frame-by-frame forensic analysis.
-                    </p>
+                    <LampContainer className="min-h-[40vh]">
+                      <motion.div
+                        initial={{ opacity: 0.5, y: 100 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
+                        className="z-50 relative"
+                      >
+                        <MagnifyingText text="Media Analysis" />
+                      </motion.div>
+                      <p className="text-muted-foreground text-lg text-center mt-28 z-50 relative">
+                        Upload a video or image for frame-by-frame forensic analysis.
+                      </p>
+                    </LampContainer>
                   </motion.div>
 
                   {/* Upload Container with pulsing glass border */}
@@ -676,133 +767,89 @@ export default function AnalyzePage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={getTransition(MOTION.durationReveal)}
-                  className="glass p-12 rounded-[2.5rem] border-primary/20 space-y-10 text-center relative overflow-hidden"
+                  className="w-full flex flex-col items-center gap-8"
                 >
-                  {/* Scanline effect */}
-                  <div className="scanline" />
-                  
-                  {/* Background glow */}
-                  <div className="absolute inset-0 pointer-events-none">
-                    <motion.div
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px]"
-                      animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-                      transition={{ duration: 4, repeat: Infinity }}
-                    />
-                  </div>
-
-                  {/* Forensic Shield Ring */}
-                  <div className="relative mx-auto w-32 h-32">
-                    {/* Outer rotating ring */}
-                    <motion.div
-                      className="absolute inset-0 rounded-full border-4 border-primary/20"
-                      style={{ borderTopColor: 'rgba(0, 255, 255, 0.8)' }}
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                    />
-                    
-                    {/* Middle pulsing ring */}
-                    <motion.div
-                      className="absolute inset-2 rounded-full border-2 border-primary/30"
-                      animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                    
-                    {/* Inner rotating ring (opposite direction) */}
-                    <motion.div
-                      className="absolute inset-4 rounded-full border-2 border-primary/40"
-                      style={{ borderBottomColor: 'rgba(0, 255, 255, 0.6)' }}
-                      animate={{ rotate: -360 }}
-                      transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                    />
-                    
-                    {/* Center shield icon */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <motion.div
-                        animate={{ scale: [1, 1.1, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="relative"
-                      >
-                         <Shield className="w-10 h-10 text-primary" />
-                         {previewUrl && (
-                           <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 0.2 }}
-                            className="absolute -inset-8 blur-md"
-                           >
-                             <img src={previewUrl} className="w-full h-full object-cover rounded-full" alt="" />
-                           </motion.div>
-                         )}
-                      </motion.div>
-                    </div>
-                  </div>
-
-                  {/* Visual Scanner Overlay */}
+                  {/* MASSIVE ACTIVE SCAN OVERLAY */}
                   {previewUrl && (
                     <motion.div 
-                      className="mx-auto w-80 aspect-video rounded-3xl border border-primary/20 bg-black/40 relative overflow-hidden group shadow-2xl"
-                      initial={{ opacity: 0, scale: 0.9 }}
+                      className="w-full max-w-6xl aspect-video rounded-3xl border border-primary/30 bg-black/80 relative overflow-hidden group shadow-[0_0_50px_rgba(0,255,255,0.15)]"
+                      initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.2 }}
+                      transition={{ delay: 0.1 }}
                     >
-                      <img src={previewUrl} className="w-full h-full object-cover opacity-40 blur-[1px]" alt="Scanning target" />
+                      <img src={previewUrl} className="absolute inset-0 w-full h-full object-contain opacity-60 blur-[1px]" alt="Scanning target" />
                       
                       {/* Scanning HUD Components */}
                       <div className="absolute inset-0 z-20 pointer-events-none">
                         {/* Tactical Corners */}
-                        <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-primary/60" />
-                        <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-primary/60" />
-                        <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-primary/60" />
-                        <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-primary/60" />
+                        <div className="absolute top-6 left-6 w-12 h-12 border-t-4 border-l-4 border-primary/80" />
+                        <div className="absolute top-6 right-6 w-12 h-12 border-t-4 border-r-4 border-primary/80" />
+                        <div className="absolute bottom-6 left-6 w-12 h-12 border-b-4 border-l-4 border-primary/80" />
+                        <div className="absolute bottom-6 right-6 w-12 h-12 border-b-4 border-r-4 border-primary/80" />
                         
+                        {/* Matrix Data Stream moving OVER the massive image */}
+                        <MatrixDataStream isActive={true} />
+
                         {/* Shifting Data Readouts */}
-                        <div className="absolute top-4 left-10 text-[8px] font-mono text-primary/80 flex flex-col gap-1">
-                          <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 0.5, repeat: Infinity }}>CORE_ANALYSIS: RUNNING</motion.span>
-                          <span>LAT: 40.7128 | LNG: 74.0060</span>
+                        <div className="absolute top-8 left-24 text-xs font-mono text-primary/90 flex flex-col gap-2">
+                          <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 0.5, repeat: Infinity }} className="font-bold text-sm bg-primary/10 px-2 py-1 rounded">CORE_ANALYSIS: RUNNING</motion.span>
+                          <span className="bg-black/40 px-2 py-1 rounded inline-block w-fit">LAT: 40.7128 | LNG: 74.0060</span>
                         </div>
                         
-                        <div className="absolute bottom-4 right-10 text-[8px] font-mono text-primary/80 text-right">
-                          <motion.div animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>CH_SIG: 100/100</motion.div>
-                          <div>ID: {analysisId?.substring(0, 8)}</div>
+                        <div className="absolute bottom-8 right-[220px] text-xs font-mono text-primary/90 text-right flex flex-col items-end gap-2">
+                          <motion.div animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="bg-primary/10 px-2 py-1 rounded inline-block">CH_SIG: 100/100</motion.div>
+                          <div className="bg-black/40 px-2 py-1 rounded inline-block">ID: {analysisId?.substring(0, 8)}</div>
                         </div>
 
-                        {/* Floating Bounding Boxes */}
-                        {Array.from({ length: 4 }).map((_, i) => (
+                        {/* Massive Floating Bounding Boxes */}
+                        {Array.from({ length: 6 }).map((_, i) => (
                           <motion.div
                             key={i}
                             animate={{ 
-                              x: [Math.random() * 60 + 20 + "%", Math.random() * 60 + 20 + "%"],
-                              y: [Math.random() * 60 + 20 + "%", Math.random() * 60 + 20 + "%"],
-                              opacity: [0, 0.6, 0]
+                              x: [Math.random() * 80 + 10 + "%", Math.random() * 80 + 10 + "%"],
+                              y: [Math.random() * 80 + 10 + "%", Math.random() * 80 + 10 + "%"],
+                              width: [Math.random() * 150 + 100 + "px", Math.random() * 200 + 150 + "px"],
+                              height: [Math.random() * 150 + 100 + "px", Math.random() * 200 + 150 + "px"],
+                              opacity: [0, 0.8, 0]
                             }}
-                            transition={{ duration: 4 + i, repeat: Infinity }}
-                            className="absolute w-12 h-12 border border-primary/30 flex items-center justify-center"
+                            transition={{ duration: 3 + i * 0.5, repeat: Infinity, ease: "easeInOut" }}
+                            className="absolute border-2 border-primary/50 flex items-center justify-center bg-primary/10"
                           >
-                            <div className="w-1 h-1 bg-primary/60" />
-                            <div className="absolute -top-4 left-0 text-[6px] font-mono text-primary/80">OBJ_{i+1}</div>
+                            <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-primary" />
+                            <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-primary" />
+                            <div className="w-2 h-2 bg-primary/80 rounded-full" />
+                            <div className="absolute -top-6 left-0 text-[10px] font-mono text-primary bg-black/60 px-1 border border-primary/30">TRACK_OBJ_{i+1}</div>
                           </motion.div>
                         ))}
                       </div>
 
-                      {/* Scanning Laser Line */}
+                      {/* Massive Scanning Laser Line */}
                       <motion.div 
-                        className="absolute inset-x-0 h-[2px] bg-primary shadow-[0_0_20px_rgba(0,242,255,1)] z-30"
+                        className="absolute inset-x-0 h-[4px] bg-primary shadow-[0_0_40px_10px_rgba(0,242,255,0.6)] z-30"
                         animate={{ top: ['0%', '100%', '0%'] }}
                         transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                       />
                       
-                      {/* Grid Scanner Overlay */}
-                      <div className="absolute inset-0 grid grid-cols-12 grid-rows-8 opacity-20 pointer-events-none">
-                        {Array.from({ length: 96 }).map((_, i) => (
-                          <div key={i} className="border-[0.5px] border-primary/30" />
-                        ))}
-                      </div>
+                      {/* Detailed Grid Scanner Overlay */}
+                      <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(0, 255, 255, 0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.4) 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
 
-                      <div className="absolute top-2 left-2 flex items-center gap-1.5 glass px-2 py-0.5 rounded-md border-white/10">
-                        <div className="w-1 h-1 rounded-full bg-primary animate-ping" />
-                        <span className="text-[8px] font-mono text-primary uppercase">Pixel Scan Active</span>
+                      <div className="absolute top-6 right-6 flex items-center gap-2 glass px-3 py-1.5 rounded-md border-primary/30 z-30 bg-black/40">
+                        <div className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                        <span className="text-[10px] font-mono text-red-500 uppercase tracking-widest font-bold">Live Intercept</span>
                       </div>
                     </motion.div>
                   )}
+
+                  {/* Status Hub (Bottom Section) */}
+                  <div className="glass p-8 rounded-[2rem] border-primary/20 space-y-8 w-full max-w-6xl relative overflow-hidden">
+                    {/* Background glow */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      <motion.div
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px]"
+                        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+                        transition={{ duration: 4, repeat: Infinity }}
+                      />
+                    </div>
 
                   {/* Status Text */}
                   <div className="space-y-4 relative z-10">
@@ -896,6 +943,7 @@ export default function AnalyzePage() {
                       </motion.div>
                     ))}
                   </div>
+                </div>
                 </motion.div>
               )}
             </AnimatePresence>

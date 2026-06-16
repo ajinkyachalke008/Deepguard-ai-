@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       
       Look for:
       1. GAN artifacts (checkerboard patterns, unusual noise).
-      2. Anatomical inconsistencies (extra fingers, irregular eye reflections, mismatched earrings).
+      2. Anatomical inconsistencies (extra fingers, irregular eye reflections, mismatched earrings, texture breaks).
       3. Spectral anomalies (unnatural frequency distributions).
       4. Lighting and shadow inconsistencies.
       
@@ -46,8 +46,51 @@ export async function POST(request: NextRequest) {
           "General": "string",
           "Journalist": "string",
           "Legal": "string"
-        }
+        },
+        "heatmapRegions": [
+          {
+            "id": "string (e.g. h1, h2)",
+            "x": number (percentage integer 0-100 representing top-left X position of bounding box on image where anomaly is seen),
+            "y": number (percentage integer 0-100 representing top-left Y position of bounding box on image),
+            "width": number (percentage integer 1-100 of bounding box width),
+            "height": number (percentage integer 1-100 of bounding box height),
+            "intensity": number (decimal 0.0 to 1.0 indicating severity/confidence of anomaly),
+            "label": "string (e.g. 'Mismatched Eye Reflections')",
+            "explanation": "string (specific observation description)"
+          }
+        ],
+        "narrativeTimeline": [
+          {
+            "id": "string (unique)",
+            "milestone": "string (e.g. 'Signal Acquisition', 'Biometric Scan', 'Frequency Scan')",
+            "description": "string (custom observation, what was verified on this specific image)",
+            "timestamp": "string (e.g. 'T+0.2s', 'T+0.5s')",
+            "iconType": "shield" | "search" | "alert" | "check"
+          }
+        ],
+        "confidenceEvolution": [
+          {
+            "stage": "string",
+            "delta": number (relative change in confidence, e.g. 10 or -8),
+            "cumulative": number (running confidence score, 0-100),
+            "explanation": "string (rationale for confidence change)"
+          }
+        ],
+        "confidenceGaps": [
+          {
+            "id": "string",
+            "condition": "string (e.g. 'EXIF Metadata', 'Texture Uniformity')",
+            "impact": "string (e.g. '+10%', '-15%')",
+            "recommendation": "string (actionable investigator advice)",
+            "status": "missing" | "degraded" | "present"
+          }
+        ]
       }
+
+      CRITICAL SPECIFICATION FOR coordinates in heatmapRegions:
+      - x, y, width, height must be integer percentages relative to the image (0-100).
+      - If the image is "Likely Real" (score < 35), you can return an empty heatmapRegions array, or a single region covering a normal area labeled "Normal variation" with low intensity (0.1 to 0.2).
+      - If the image is AI-generated/Manipulated, map the actual coordinates where you spot visual flaws (e.g. eyes area is around y: 25-40, mouth is around y: 55-70, ears are on extreme left/right x, etc.).
     `;
 
     const response = await chatCompletion([
@@ -73,7 +116,11 @@ export async function POST(request: NextRequest) {
             verdict: aiResult.verdict,
             signals: aiResult.signals,
             findings: aiResult.findings || [],
-            audienceExplanations: aiResult.audienceExplanations || {}
+            audienceExplanations: aiResult.audienceExplanations || {},
+            heatmapRegions: aiResult.heatmapRegions || [],
+            narrativeTimeline: aiResult.narrativeTimeline || [],
+            confidenceEvolution: aiResult.confidenceEvolution || [],
+            confidenceGaps: aiResult.confidenceGaps || []
           }
         });
       }

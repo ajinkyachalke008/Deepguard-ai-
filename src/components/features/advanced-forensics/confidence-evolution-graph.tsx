@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Info } from 'lucide-react';
 import {
@@ -25,14 +25,19 @@ interface ConfidenceEvolutionGraphProps {
 
 export function ConfidenceEvolutionGraph({ steps }: ConfidenceEvolutionGraphProps) {
   return (
-    <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-6 relative overflow-hidden">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-primary" />
-          Confidence Evolution
-        </h3>
-        <Badge variant="outline" className="text-[10px] uppercase font-mono bg-primary/5 border-primary/20">
-          Recursive Signal Check
+    <SpotlightCard className="p-6 space-y-6">
+      <div className="flex items-center justify-between relative z-10 border-b border-primary/10 pb-4">
+        <div>
+          <h3 className="text-sm font-black font-mono text-primary uppercase tracking-[0.2em] flex items-center gap-2 drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            Confidence Evolution Graph
+          </h3>
+          <p className="text-[10px] text-primary/60 leading-relaxed mt-1 font-mono uppercase tracking-widest">
+            Recursive Forensic Analysis
+          </p>
+        </div>
+        <Badge variant="outline" className="text-[9px] uppercase font-mono border-primary/30 text-primary shadow-[0_0_10px_rgba(0,255,255,0.2)] bg-primary/10 px-3 py-1">
+          Evidence Accumulation
         </Badge>
       </div>
 
@@ -46,16 +51,16 @@ export function ConfidenceEvolutionGraph({ steps }: ConfidenceEvolutionGraphProp
           ))}
         </div>
 
-        {/* Connection Lines (SVG) - Solid Liquid Path */}
+        {/* Connection Lines (SVG) - Glowing Cyber Path */}
         <svg className="absolute inset-x-0 bottom-12 w-full h-[150px] pointer-events-none overflow-visible">
           <defs>
             <linearGradient id="glow-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#00f2ff" />
-              <stop offset="50%" stopColor="#3b82f6" />
-              <stop offset="100%" stopColor="#a855f7" />
+              <stop offset="0%" stopColor="#00c8c8" />
+              <stop offset="50%" stopColor="#00ffcc" />
+              <stop offset="100%" stopColor="#ff3b30" />
             </linearGradient>
             <filter id="path-glow">
-              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feGaussianBlur stdDeviation="3" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
           </defs>
@@ -98,34 +103,40 @@ export function ConfidenceEvolutionGraph({ steps }: ConfidenceEvolutionGraphProp
                     initial={{ scale: 0, opacity: 0, y: 10 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.15 + 0.5, type: 'spring', stiffness: 200 }}
-                    className="relative cursor-help"
+                    className="relative cursor-crosshair group/node"
                     style={{ marginBottom: `${step.cumulative * 1.5}px` }}
                   >
+                    {/* Vertical Targeting Laser to Bottom Axis */}
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 w-px h-[150px] bg-gradient-to-b from-primary/50 to-transparent pointer-events-none z-0" />
+                    
                     <motion.div 
-                      className="w-4 h-4 rounded-full bg-background border-2 border-primary group-hover:scale-150 transition-transform relative z-10"
-                      animate={{ scale: [1, 1.05, 1] }}
+                      className="w-4 h-4 rounded-full bg-[#050505] border-[3px] border-primary group-hover/node:scale-150 group-hover/node:bg-primary transition-all relative z-10 shadow-[0_0_15px_rgba(0,255,255,0.8)]"
+                      animate={{ scale: [1, 1.1, 1] }}
                       transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
-                    />
+                    >
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/node:opacity-100 transition-opacity">
+                        <div className="w-1 h-1 bg-black rounded-full" />
+                      </div>
+                    </motion.div>
                     <motion.div 
-                      className="absolute inset-0 rounded-full bg-primary/40 blur-md"
-                      animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0.6, 0.3] }}
-                      transition={{ repeat: Infinity, duration: 3, delay: i * 0.2 }}
+                      className="absolute inset-0 rounded-full bg-primary/60 blur-md"
+                      animate={{ scale: [1, 2, 1], opacity: [0.4, 0.8, 0.4] }}
+                      transition={{ repeat: Infinity, duration: 2, delay: i * 0.2 }}
                     />
                   </motion.div>
                 </TooltipTrigger>
-                <TooltipContent className="glass border-white/10 p-3 max-w-xs shadow-2xl backdrop-blur-xl">
-                  <div className="space-y-1.5">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-primary flex justify-between">
+                <TooltipContent className="glass border-white/10 p-4 max-w-xs shadow-2xl backdrop-blur-xl rounded-xl">
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-primary flex justify-between border-b border-white/10 pb-2">
                       {step.stage}
                       <span className="opacity-50">T+{(i * 0.4).toFixed(1)}s</span>
                     </div>
-                    <p className="text-[11px] leading-tight text-muted-foreground font-medium">{step.explanation}</p>
-                    <div className="flex items-center gap-2 pt-2 border-t border-white/10 mt-1">
-                      <div className={`flex items-center gap-0.5 text-[10px] font-bold ${step.delta >= 0 ? 'text-forensic-green' : 'text-forensic-red'}`}>
+                    <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">{step.explanation}</p>
+                    <div className="flex items-center gap-3 pt-2">
+                      <div className={`flex items-center gap-1 text-[10px] font-black tracking-widest ${step.delta >= 0 ? 'text-forensic-green' : 'text-forensic-red'}`}>
                         {step.delta >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                        {step.delta >= 0 ? '+' : ''}{step.delta}%
+                        {step.delta >= 0 ? '+' : ''}{step.delta}% IMPACT
                       </div>
-                      <div className="text-[10px] text-muted-foreground font-mono bg-white/5 px-2 rounded-full">CONF: {step.cumulative}%</div>
                     </div>
                   </div>
                 </TooltipContent>
@@ -133,10 +144,23 @@ export function ConfidenceEvolutionGraph({ steps }: ConfidenceEvolutionGraphProp
             </TooltipProvider>
             
             <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.15 + 0.8 }}
+              className={`absolute text-[9px] font-black font-mono px-2 py-0.5 rounded shadow-[0_0_10px_currentcolor] border -top-6 whitespace-nowrap z-40
+                ${step.cumulative > 85 ? 'text-red-400 bg-red-950/80 border-red-500' : 
+                  step.cumulative > 50 ? 'text-yellow-400 bg-yellow-950/80 border-yellow-500' : 
+                  'text-primary bg-primary/10 border-primary/50'}`}
+              style={{ top: `calc(${100 - step.cumulative}% - 2.5rem)` }}
+            >
+              {step.cumulative}%
+            </motion.div>
+
+            <motion.div 
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.15 + 0.8 }}
-              className="text-[9px] font-bold font-mono text-muted-foreground mt-4 rotate-[-45deg] origin-top-left translate-x-2 group-hover:text-primary transition-colors"
+              className="text-[9px] font-bold font-mono text-muted-foreground mt-6 rotate-[-45deg] origin-top-left translate-x-3 group-hover:text-primary transition-colors whitespace-nowrap"
             >
               {step.stage.split(' ')[0]}
             </motion.div>
@@ -150,6 +174,6 @@ export function ConfidenceEvolutionGraph({ steps }: ConfidenceEvolutionGraphProp
           Graph shows evidence accumulation. Confidence increases as independent forensic tests confirm consistent signals.
         </p>
       </div>
-    </Card>
+    </SpotlightCard>
   );
 }

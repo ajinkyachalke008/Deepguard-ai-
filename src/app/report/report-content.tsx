@@ -7,6 +7,7 @@ import { ShaderAnimation } from '@/components/ui/shader-animation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -28,6 +29,7 @@ import { AudioSpectrogramViewer } from '@/components/features/audio-spectrogram-
 import { AnalysisResult } from '@/lib/forensic-analysis';
 import { generateForensicPDF, downloadPDF } from '@/lib/pdf-export';
 import { supabase } from '@/lib/supabase';
+import { getDemoCachedAnalysis } from '@/lib/demo-profiles';
 
 // Advanced Forensic Imports
 import { ConfidenceEvolutionGraph } from '@/components/features/advanced-forensics/confidence-evolution-graph';
@@ -35,6 +37,7 @@ import { ConfidenceGaps } from '@/components/features/advanced-forensics/confide
 import { AuthenticityDriftTimeline } from '@/components/features/advanced-forensics/authenticity-drift-timeline';
 import { PlausibilityPanel } from '@/components/features/advanced-forensics/plausibility-panel';
 import { ReliabilityContract } from '@/components/features/advanced-forensics/reliability-contract';
+import { BorderRotate } from '@/components/ui/animated-gradient-border';
 import { AdversarySimulation } from '@/components/features/advanced-forensics/adversary-simulation';
 import { AudienceExplanations } from '@/components/features/advanced-forensics/audience-explanations';
 import { NarrativeTimeline } from '@/components/features/advanced-forensics/narrative-timeline';
@@ -82,28 +85,29 @@ function ResultExplanation({ analysis }: { analysis: AnalysisResult }) {
   const [showMethodology, setShowMethodology] = useState(false);
   
   const topSignals = useMemo(() => {
+    const activeSignals = analysis.aiInterpretation?.signals || analysis.signals;
     const signals = [
       { 
         name: 'Image Texture', 
-        score: analysis.signals.ganArtifacts, 
+        score: activeSignals.ganArtifacts, 
         desc: 'microscopic patterns',
         methodology: 'Uses a Spatial Rich Model (SRM) to identify non-natural local correlations between pixels typically left by upsampling kernels.'
       },
       { 
         name: 'Spectral Frequency', 
-        score: analysis.signals.spectralAnomaly, 
+        score: activeSignals.spectralAnomaly, 
         desc: 'frequency distribution',
         methodology: 'Discrete Cosine Transform (DCT) analysis identifies checkerboard artifacts in the Y-channel, common in StyleGAN-based generation.'
       },
       { 
         name: 'Anatomy', 
-        score: analysis.signals.anatomicalInconsistency, 
+        score: activeSignals.anatomicalInconsistency, 
         desc: 'geometric alignment',
         methodology: '3D Landmark projection checks for facial mesh coherence. Large deviations suggest frame-by-frame splicing.'
       },
       { 
         name: 'Lighting', 
-        score: 100 - analysis.signals.lightingConsistency, 
+        score: 100 - activeSignals.lightingConsistency, 
         desc: 'light source consistency',
         methodology: 'Lambertian reflectance modeling compares light source vectors across multiple facial planes to detect environment mismatch.'
       },
@@ -112,7 +116,7 @@ function ResultExplanation({ analysis }: { analysis: AnalysisResult }) {
   }, [analysis]);
 
   return (
-    <Card className="glass p-4 rounded-2xl border-white/5 bg-white/5 animate-in fade-in slide-in-from-top-2 duration-700 delay-300">
+    <SpotlightCard className="p-4 animate-in fade-in slide-in-from-top-2 duration-700 delay-300">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Info className="w-4 h-4 text-primary" />
@@ -129,12 +133,24 @@ function ResultExplanation({ analysis }: { analysis: AnalysisResult }) {
       </div>
       
       <div className="space-y-3">
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
-          The verdict is driven by <span className="text-white font-medium">{topSignals[0].name}</span> ({topSignals[0].score}%) and <span className="text-white font-medium">{topSignals[1].name}</span> ({topSignals[1].score}%). 
-          {analysis.verdict.severity === 'high' 
-            ? " Significant synthetic markers detected in neural upscaling layers." 
-            : " Signals remain within the stochastic noise threshold for camera sensors."}
-        </p>
+        {analysis.aiInterpretation?.demoStrings?.reasoning ? (
+          <ul className="text-[11px] text-muted-foreground leading-relaxed list-disc list-inside space-y-1">
+            {analysis.aiInterpretation.demoStrings.reasoning.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            {analysis.aiInterpretation?.verdict.explanation || (
+              <>
+                The verdict is driven by <span className="text-white font-medium">{topSignals[0]?.name}</span> ({topSignals[0]?.score}%) and <span className="text-white font-medium">{topSignals[1]?.name}</span> ({topSignals[1]?.score}%). 
+                {analysis.verdict.severity === 'high' 
+                  ? " Significant synthetic markers detected in neural upscaling layers." 
+                  : " Signals remain within the stochastic noise threshold for camera sensors."}
+              </>
+            )}
+          </p>
+        )}
 
         <AnimatePresence>
           {showMethodology && (
@@ -142,7 +158,7 @@ function ResultExplanation({ analysis }: { analysis: AnalysisResult }) {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden space-y-2 pt-2 border-t border-white/5"
+              className="overflow-hidden space-y-2 pt-2 border-t"
             >
               {topSignals.map((signal, i) => (
                 <div key={i} className="p-2 rounded-lg bg-primary/5 border border-primary/10">
@@ -154,7 +170,7 @@ function ResultExplanation({ analysis }: { analysis: AnalysisResult }) {
           )}
         </AnimatePresence>
       </div>
-    </Card>
+    </SpotlightCard>
   );
 }
 
@@ -163,6 +179,7 @@ export function ReportContent() {
   const router = useRouter();
   const analysisId = searchParams.get('analysis_id') || 'demo';
   const isReadOnly = searchParams.get('read_only') === 'true';
+  const isDemoMode = searchParams.get('demo') === 'true' || analysisId.startsWith('demo_');
 
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -179,17 +196,34 @@ export function ReportContent() {
 
   useEffect(() => {
     setMounted(true);
-    const fetchAnalysis = async () => {
+    let isSubscribed = true;
+    let pollInterval: NodeJS.Timeout | null = null;
+    let pollAttempts = 0;
+    const maxPollAttempts = 15; // 30 seconds total
+
+    const fetchAnalysis = async (isInitial = true) => {
       try {
-        setLoading(true);
+        if (isInitial) setLoading(true);
+
+        // Demo mode: load from localStorage cache
+        if (isDemoMode || analysisId.startsWith('demo_')) {
+          const cached = getDemoCachedAnalysis(analysisId);
+          if (cached && isSubscribed) {
+            setAnalysis(cached);
+            if (isInitial) setLoading(false);
+            return;
+          }
+        }
+
         const response = await fetch(`/api/analyze/${analysisId}`);
         const data = await response.json();
         
         if (!response.ok) throw new Error(data.error || 'Failed to fetch analysis');
         
+        if (!isSubscribed) return;
         setAnalysis(data.analysis);
         
-        if (!isReadOnly && data.analysis) {
+        if (isInitial && !isReadOnly && data.analysis) {
           const historyRaw = localStorage.getItem('deepguard_history');
           const history = historyRaw ? JSON.parse(historyRaw) : [];
           const exists = history.find((h: any) => h.id === analysisId);
@@ -217,17 +251,53 @@ export function ReportContent() {
             console.warn('Could not parse stored C2PA file data');
           }
         }
+
+        // Start polling if it's an image and lacks aiInterpretation
+        if (
+          data.analysis &&
+          data.analysis.mediaType === 'image' &&
+          !data.analysis.aiInterpretation &&
+          analysisId !== 'demo' &&
+          !pollInterval
+        ) {
+          pollInterval = setInterval(async () => {
+            pollAttempts++;
+            if (pollAttempts >= maxPollAttempts) {
+              if (pollInterval) clearInterval(pollInterval);
+              return;
+            }
+            try {
+              const res = await fetch(`/api/analyze/${analysisId}`);
+              const polledData = await res.json();
+              if (res.ok && polledData.analysis && isSubscribed) {
+                if (polledData.analysis.aiInterpretation) {
+                  setAnalysis(polledData.analysis);
+                  toast.success('AI Deepfake analysis calibration complete!');
+                  if (pollInterval) clearInterval(pollInterval);
+                }
+              }
+            } catch (err) {
+              console.warn('Polling error:', err);
+            }
+          }, 2000);
+        }
+
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Analysis not found');
+        if (isSubscribed) setError(err instanceof Error ? err.message : 'Analysis not found');
       } finally {
-        setLoading(false);
+        if (isSubscribed && isInitial) setLoading(false);
       }
     };
 
-    fetchAnalysis();
+    fetchAnalysis(true);
 
     const archived = localStorage.getItem(`report_${analysisId}`);
     if (archived) setIsArchived(true);
+
+    return () => {
+      isSubscribed = false;
+      if (pollInterval) clearInterval(pollInterval);
+    };
   }, [analysisId]);
 
   // Fetch the real file from Supabase storage for forensic components
@@ -267,8 +337,8 @@ export function ReportContent() {
     if (!analysis) return;
     setIsExporting(true);
     try {
-      const pdfBlob = await generateForensicPDF(analysis, analysisId);
-      const filename = `DeepGuard_Report_${analysisId.substring(0, 8)}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const pdfBlob = await generateForensicPDF(analysis, analysisId, isDemoMode);
+      const filename = `DeepGuard_Report_${isDemoMode ? 'DEMO_' : ''}${analysisId.substring(0, 8)}_${new Date().toISOString().split('T')[0]}.pdf`;
       downloadPDF(pdfBlob, filename);
       toast.success('Forensic report exported successfully. IEEE-1711 compliant PDF generated.');
     } catch (err) {
@@ -314,7 +384,11 @@ export function ReportContent() {
       integrityConcern: false
     };
     
-    let { label, score, confidence, severity } = analysis.verdict;
+    // Use Vision AI interpretation if available
+    const activeVerdict = analysis.aiInterpretation?.verdict || analysis.verdict;
+    let { label, score, confidence } = activeVerdict;
+    let severity: 'low' | 'mid' | 'high' = score > 65 ? 'high' : score > 35 ? 'mid' : 'low';
+    
     let adjustedConfidence = confidence;
     let conflictWarning = false;
     let integrityConcern = false;
@@ -432,7 +506,7 @@ export function ReportContent() {
       {/* Global Forensic Vignette & Grain */}
       <div className="fixed inset-0 pointer-events-none z-[100] opacity-20" style={{ boxShadow: 'inset 0 0 150px #000', backgroundImage: 'url("https://www.transparenttextures.com/patterns/p6-static.png")' }} />
       
-      <nav className="w-full px-6 py-4 flex items-center justify-between glass border-b border-white/5 sticky top-0 z-[60]">
+      <nav className="w-full px-6 py-4 flex items-center justify-between border-b sticky top-0 z-[60]">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.push('/')} className="rounded-full" aria-label="Go back">
             <ArrowLeft className="w-5 h-5" />
@@ -448,7 +522,7 @@ export function ReportContent() {
           </div>
         </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="font-mono text-[10px] opacity-50 bg-white/5 uppercase">ID: {analysisId.substring(0, 12)}...</Badge>
+            <Badge variant="outline" className="font-mono text-[10px] opacity-50 uppercase">ID: {analysisId.substring(0, 12)}...</Badge>
             {isReadOnly && (
               <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 border-blue-500/20 gap-1 px-3">
                 <Shield className="w-3 h-3" />
@@ -458,7 +532,7 @@ export function ReportContent() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="rounded-full gap-2 glass border-white/10 hover:bg-white/5 group relative"
+                className="rounded-full gap-2 border-white/10 hover: group relative"
                 onClick={() => {
                   const url = `${window.location.origin}/report?analysis_id=${analysisId}&read_only=true`;
                   navigator.clipboard.writeText(url);
@@ -492,12 +566,12 @@ export function ReportContent() {
           aiScore={verdict.score}
           forensicConfidence={verdict.confidence}
           verdictLabel={verdict.label}
-          verdictSeverity={verdict.severity}
+          verdictSeverity={verdict.severity as 'low' | 'mid' | 'high'}
         />
 
         {/* Top Section: Verdict & Reliability */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-4 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+            <SpotlightCard className="p-6 rounded-[2rem] space-y-4 shadow-2xl relative overflow-hidden flex flex-col justify-between">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16" />
               
               <div className="space-y-4">
@@ -535,13 +609,43 @@ export function ReportContent() {
                       </p>
                     </div>
                   )}
+
+                  {/* Signal Contribution Breakdown */}
+                  <div className="pt-3 mt-3 border-t space-y-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[9px] text-muted-foreground uppercase font-mono tracking-wider">Signal Contribution</span>
+                      <span className="text-[9px] text-primary/50 uppercase font-mono">Real-time Map</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden flex">
+                      <motion.div 
+                        initial={{ width: 0 }} animate={{ width: `${Math.min(verdict.confidence, 85)}%` }} 
+                        transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }}
+                        className={`h-full ${verdict.severity === 'high' ? 'bg-forensic-red' : verdict.severity === 'mid' ? 'bg-yellow-500' : 'bg-forensic-green'}`} 
+                      />
+                      <motion.div 
+                        initial={{ width: 0 }} animate={{ width: `${Math.max(0, 15 - (100 - verdict.confidence))}%` }} 
+                        transition={{ duration: 1.5, delay: 0.8, ease: "easeOut" }}
+                        className="h-full bg-primary/40 border-l border-black/50" 
+                      />
+                      <motion.div 
+                        initial={{ width: 0 }} animate={{ width: '10%' }} 
+                        transition={{ duration: 1.5, delay: 1.1, ease: "easeOut" }}
+                        className="h-full bg-white/10 border-l border-black/50" 
+                      />
+                    </div>
+                    <div className="flex justify-between text-[8px] text-muted-foreground/50 font-mono uppercase">
+                      <span>Vision AI</span>
+                      <span>Metadata</span>
+                      <span>Heuristics</span>
+                    </div>
+                  </div>
                 </div>
                 
                 <ResultExplanation analysis={analysis} />
               </div>
 
               {!isReadOnly && (
-                <div className="pt-4 border-t border-white/5 mt-4">
+                <div className="pt-4 border-t mt-4">
                   <div className="text-[10px] font-mono text-muted-foreground uppercase mb-3 flex items-center gap-2">
                     <HelpCircle className="w-3 h-3" />
                     Human Calibration
@@ -568,14 +672,14 @@ export function ReportContent() {
                   </div>
                 </div>
               )}
-            </Card>
+            </SpotlightCard>
 
             <div className="lg:col-span-2 space-y-6">
               <TrustWarning verdictLabel={verdict.label} confidence={verdict.confidence} />
               <ReliabilityContract contract={analysis.reliabilityContract} />
               <div className="grid md:grid-cols-2 gap-6">
-                <AudienceExplanations explanations={analysis.audienceExplanations} />
-                <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-4">
+                <AudienceExplanations explanations={analysis.aiInterpretation?.audienceExplanations || analysis.audienceExplanations} />
+                <SpotlightCard className="p-6 rounded-[2rem] space-y-4">
                   <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                     <History className="w-4 h-4 text-primary" />
                     Forensic Chain
@@ -592,13 +696,13 @@ export function ReportContent() {
                       </div>
                     ))}
                   </div>
-                </Card>
+                </SpotlightCard>
               </div>
             </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="glass border-white/10 p-1.5 rounded-[1.5rem] w-full justify-start gap-1 flex-wrap h-auto bg-black/40 shadow-2xl">
+          <TabsList className="border-white/10 p-1.5 rounded-[1.5rem] w-full justify-start gap-1 flex-wrap h-auto bg-black/40 shadow-2xl">
             <TabsTrigger value="overview" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-black data-[state=active]:shadow-[0_0_15px_rgba(0,255,255,0.5)] gap-2 px-6 py-2.5 transition-all duration-300 font-bold uppercase tracking-tighter text-[10px] border border-transparent data-[state=active]:border-primary/50">
               <Eye className="w-3.5 h-3.5" />
               OVERVIEW
@@ -654,7 +758,7 @@ export function ReportContent() {
                     transition={{ delay: 0.1 }}
                     className="lg:col-span-2"
                   >
-                    <NarrativeTimeline milestones={analysis.narrativeTimeline} />
+                    <NarrativeTimeline milestones={analysis.aiInterpretation?.narrativeTimeline || analysis.narrativeTimeline} />
                   </motion.div>
                   <motion.div 
                     initial={{ opacity: 0, y: 20 }}
@@ -662,7 +766,7 @@ export function ReportContent() {
                     transition={{ delay: 0.2 }}
                     className="space-y-6"
                   >
-                    <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-4 relative overflow-hidden group">
+                    <SpotlightCard className="p-6 rounded-[2rem] space-y-4 relative overflow-hidden group">
                       <div className="absolute inset-0 opacity-[0.03] pointer-events-none group-hover:opacity-[0.05] transition-opacity" 
                            style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '15px 15px' }} />
                       <h3 className="text-sm font-black font-mono text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2 relative z-10">
@@ -671,24 +775,39 @@ export function ReportContent() {
                       </h3>
                       <div className="space-y-2">
                         {hiddenData.map((data, i) => (
-                          <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/5 group hover:border-primary/30 transition-colors">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center text-primary">
-                                {data.icon}
+                          <BorderRotate 
+                            key={i} 
+                            animationMode="auto-rotate"
+                            animationSpeed={3}
+                            gradientColors={{
+                              primary: '#713f12',     // Dark gold
+                              secondary: '#ca8a04',   // Standard gold
+                              accent: '#fde047'       // Glowing bright yellow/gold
+                            }}
+                            backgroundColor="#000000"
+                            borderRadius={12}
+                            borderWidth={1.5}
+                            className="w-full shadow-[0_0_15px_rgba(234,179,8,0.15)]"
+                          >
+                            <div className="flex items-center justify-between p-2.5 rounded-xl border-none bg-black/60 group hover:bg-black/80 transition-colors w-full">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center text-primary">
+                                  {data.icon}
+                                </div>
+                                <div>
+                                  <div className="text-[9px] font-mono text-muted-foreground uppercase">{data.label}</div>
+                                  <div className="text-[11px] font-bold truncate max-w-[120px]">{data.status}</div>
+                                </div>
                               </div>
-                              <div>
-                                <div className="text-[9px] font-mono text-muted-foreground uppercase">{data.label}</div>
-                                <div className="text-[11px] font-bold truncate max-w-[120px]">{data.status}</div>
-                              </div>
+                              <Badge className={data.risk === 'Safe' ? 'bg-forensic-green/10 text-forensic-green border-forensic-green/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'} variant="outline">
+                                {data.risk}
+                              </Badge>
                             </div>
-                            <Badge className={data.risk === 'Safe' ? 'bg-forensic-green/10 text-forensic-green border-forensic-green/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'} variant="outline">
-                              {data.risk}
-                            </Badge>
-                          </div>
+                          </BorderRotate>
                         ))}
                       </div>
-                    </Card>
-                    <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-4">
+                    </SpotlightCard>
+                    <SpotlightCard className="p-6 rounded-[2rem] space-y-4">
                       <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                         <Database className="w-4 h-4 text-primary" />
                         File Attributes
@@ -701,16 +820,16 @@ export function ReportContent() {
                           <EvidenceRow label="Compression" value={analysis.metadata.isCompressionWarning ? "High/Warning" : "Standard"} />
                           <EvidenceRow label="EXIF Data" value={analysis.metadata.hasExif ? "Present" : "Not Found"} />
                         </div>
-                    </Card>
+                    </SpotlightCard>
                   </motion.div>
                 </div>
               </TabsContent>
 
               <TabsContent value="reasoning" className="mt-6 space-y-6 outline-none">
                 <div className="grid lg:grid-cols-2 gap-6">
-                  <ConfidenceEvolutionGraph steps={analysis.confidenceEvolution} />
+                  <ConfidenceEvolutionGraph steps={analysis.aiInterpretation?.confidenceEvolution || analysis.confidenceEvolution} />
                   <PlausibilityPanel checks={analysis.plausibilityChecks} />
-                  <ConfidenceGaps gaps={analysis.confidenceGaps} />
+                  <ConfidenceGaps gaps={analysis.aiInterpretation?.confidenceGaps || analysis.confidenceGaps} />
                   <AdversarySimulation baseConfidence={verdict.confidence} />
                   <div className="lg:col-span-2">
                     <AuthenticityDriftTimeline events={analysis.authenticityDrift} />
@@ -723,10 +842,11 @@ export function ReportContent() {
                   imageSrc={analysis.thumbnailUrl || analysis.fileUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop"}
                   mediaType={analysis.mediaType}
                   frameNumber={analysis.mediaType === 'video' ? 1242 : undefined}
-                  regions={analysis.heatmapRegions.map(r => ({
+                  regions={(analysis.aiInterpretation?.heatmapRegions || analysis.heatmapRegions).map(r => ({
                     ...r,
                     intensity: Math.round(r.intensity * 100)
                   }))}
+                  demoString={analysis.aiInterpretation?.demoStrings?.heatmap}
                 />
               </TabsContent>
 
@@ -743,10 +863,12 @@ export function ReportContent() {
 
               <TabsContent value="c2pa" className="mt-6 outline-none">
                 <C2PAVerification 
+                  manifest={analysis.c2pa as any}
                   mediaType={analysis.mediaType}
                   fileData={c2paFileData?.fileData}
                   fileName={c2paFileData?.fileName}
                   onStatusChange={(status) => setC2paStatus(status)}
+                  demoString={analysis.aiInterpretation?.demoStrings?.c2pa}
                 />
               </TabsContent>
 
@@ -755,12 +877,14 @@ export function ReportContent() {
                   file={forensicFile || undefined}
                   fileName={analysis.fileName}
                   fileSize={analysis.fileSize}
+                  demoString={analysis.aiInterpretation?.demoStrings?.binary}
                 />
               </TabsContent>
 
               <TabsContent value="stego" className="mt-6 outline-none">
                 <SteganographyViewer 
                   imageSrc={analysis.fileUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop"} 
+                  demoString={analysis.aiInterpretation?.demoStrings?.stego}
                 />
               </TabsContent>
 
@@ -779,7 +903,7 @@ export function ReportContent() {
 
 function EvidenceRow({ label, value }: { label: string, value: string }) {
   return (
-    <div className="flex items-center justify-between text-xs py-2 border-b border-white/5 last:border-0 group">
+    <div className="flex items-center justify-between text-xs py-2 border-b last:border-0 group">
       <span className="text-muted-foreground group-hover:text-white transition-colors">{label}</span>
       <span className="font-mono text-primary group-hover:text-primary/80 truncate max-w-[180px]">{value}</span>
     </div>

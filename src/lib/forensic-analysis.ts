@@ -183,6 +183,44 @@ export interface AnalysisResult {
     };
     findings: Array<{ location: string; issue: string; confidence: number }>;
     audienceExplanations: Record<string, string>;
+    heatmapRegions?: Array<{
+      id: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      intensity: number;
+      label: string;
+      explanation: string;
+    }>;
+    demoStrings?: {
+      heatmap: string;
+      c2pa: string;
+      stego: string;
+      binary: string;
+      reasoning: string[];
+    };
+    anomalyCount?: number;
+    narrativeTimeline?: Array<{
+      id: string;
+      milestone: string;
+      description: string;
+      timestamp: string;
+      iconType: 'shield' | 'search' | 'alert' | 'check';
+    }>;
+    confidenceEvolution?: Array<{
+      stage: string;
+      delta: number;
+      cumulative: number;
+      explanation: string;
+    }>;
+    confidenceGaps?: Array<{
+      id: string;
+      condition: string;
+      impact: string;
+      recommendation: string;
+      status: 'missing' | 'degraded' | 'present';
+    }>;
   };
 }
 
@@ -227,8 +265,8 @@ async function extractRealMetadata(fileUrl?: string): Promise<ExtractedMetadata>
     const file = tags.file || {};
     const gps = tags.gps || {};
     let camera: string | undefined;
-    const make = exif?.Make?.description || file?.Make?.description;
-    const model = exif?.Model?.description || file?.Model?.description;
+    const make = (exif as any)?.Make?.description || (file as any)?.Make?.description;
+    const model = (exif as any)?.Model?.description || (file as any)?.Model?.description;
     if (make && model) {
       camera = `${make} ${model}`.trim();
     } else if (model) {
@@ -259,7 +297,7 @@ async function extractRealMetadata(fileUrl?: string): Promise<ExtractedMetadata>
       creationDate,
       gpsLocation,
       hasExif: !!(make || model || dateTag),
-      iso: exif?.ISOSpeedRatings?.value,
+      iso: (exif as any)?.ISOSpeedRatings?.value as number | undefined,
       aperture: exif?.FNumber?.description,
       shutterSpeed: exif?.ExposureTime?.description,
       focalLength: exif?.FocalLength?.description,
@@ -373,8 +411,8 @@ function simulateForensicAnalysis(
     { stage: 'Spectral Scan', delta: isLikelyAI ? 15 : -5, cumulative: isLikelyAI ? 70 : 50, explanation: 'Frequency distribution analyzed.' }
   ];
 
-  const confidenceGaps = [
-    { id: 'g1', condition: 'Camera Source', impact: '+12%', recommendation: 'Provide original EXIF headers.', status: extractedMeta?.hasExif ? 'present' : 'missing' as const }
+  const confidenceGaps: AnalysisResult['confidenceGaps'] = [
+    { id: 'g1', condition: 'Camera Source', impact: '+12%', recommendation: 'Provide original EXIF headers.', status: extractedMeta?.hasExif ? 'present' : 'missing' }
   ];
 
   return {
@@ -429,7 +467,7 @@ export async function createAnalysis(request: AnalysisRequest): Promise<Analysis
   const analysis: AnalysisResult = {
     id, status: 'completed', createdAt: new Date().toISOString(), completedAt: new Date().toISOString(),
     fileName: request.fileName, fileSize: request.fileSize, fileUrl: request.fileUrl, thumbnailUrl: request.thumbnailUrl,
-    mediaType, ...forensicData
+    ...forensicData
   };
   
   if (analysis.metadata.socialPlatform) {

@@ -24,8 +24,38 @@ const PatchSchema = z.object({
       location: z.string(),
       issue: z.string(),
       confidence: z.number().min(0).max(100),
-    })),
-    audienceExplanations: z.record(z.string(), z.string()),
+    })).optional(),
+    audienceExplanations: z.record(z.string(), z.string()).optional(),
+    heatmapRegions: z.array(z.object({
+      id: z.string(),
+      x: z.number(),
+      y: z.number(),
+      width: z.number(),
+      height: z.number(),
+      intensity: z.number(),
+      label: z.string(),
+      explanation: z.string(),
+    })).optional(),
+    narrativeTimeline: z.array(z.object({
+      id: z.string(),
+      milestone: z.string(),
+      description: z.string(),
+      timestamp: z.string(),
+      iconType: z.enum(['shield', 'search', 'alert', 'check']),
+    })).optional(),
+    confidenceEvolution: z.array(z.object({
+      stage: z.string(),
+      delta: z.number(),
+      cumulative: z.number(),
+      explanation: z.string(),
+    })).optional(),
+    confidenceGaps: z.array(z.object({
+      id: z.string(),
+      condition: z.string(),
+      impact: z.string(),
+      recommendation: z.string(),
+      status: z.enum(['missing', 'degraded', 'present']),
+    })).optional()
   }).optional(),
   status: z.enum(['pending', 'processing', 'completed', 'failed']).optional(),
   completedAt: z.string().optional()
@@ -88,7 +118,7 @@ export async function PATCH(
     }
     
     // body should be a Partial<AnalysisResult> with fields to update
-    const updated = await updateAnalysis(id, body);
+    const updated = await updateAnalysis(id, body as any);
     
     if (!updated) {
       return NextResponse.json(

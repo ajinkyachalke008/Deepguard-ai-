@@ -20,7 +20,9 @@ import {
 import { ShaderAnimation } from '@/components/ui/shader-animation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Badge } from '@/components/ui/badge';
+import { PerformanceBenchmarkCard } from '@/components/ui/performance-benchmark-card';
 import { 
   XAxis, 
   YAxis, 
@@ -149,7 +151,7 @@ function StatCard({ icon: Icon, label, value, trend, trendUp }: {
   trendUp: boolean 
 }) {
   return (
-    <Card className="glass p-6 border-white/5 relative group overflow-hidden">
+    <SpotlightCard className="p-6 relative group overflow-hidden">
       <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
         <Icon className="w-12 h-12" />
       </div>
@@ -159,7 +161,7 @@ function StatCard({ icon: Icon, label, value, trend, trendUp }: {
         <TrendingUp className={`w-3 h-3 ${!trendUp ? 'rotate-180' : ''}`} />
         {trend} vs last 24h
       </div>
-    </Card>
+    </SpotlightCard>
   );
 }
 
@@ -351,7 +353,7 @@ export function IntelligenceContent() {
     <div className="relative min-h-screen bg-black text-white font-sans selection:bg-primary/30">
       <ShaderAnimation />
       
-      <nav className="fixed top-0 w-full z-50 px-6 py-4 flex items-center justify-between glass border-b-0 m-4 rounded-full max-w-7xl left-1/2 -translate-x-1/2">
+      <nav className="fixed top-0 w-full z-50 px-6 py-4 flex items-center justify-between border-b-0 m-4 rounded-full max-w-7xl left-1/2 -translate-x-1/2">
         <div className="flex items-center gap-2">
           <NextLink href="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center group-hover:rotate-12 transition-transform">
@@ -385,11 +387,11 @@ export function IntelligenceContent() {
             </p>
           </div>
           <div className="flex gap-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono bg-white/5 px-4 py-2 rounded-full border border-white/5">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono px-4 py-2 rounded-full border">
               <Activity className="w-3 h-3 text-forensic-green animate-pulse" />
               SYSTEM STATUS: OPERATIONAL
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono bg-white/5 px-4 py-2 rounded-full border border-white/5">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono px-4 py-2 rounded-full border">
               <Database className="w-3 h-3 text-primary" />
               REALTIME: CONNECTED
             </div>
@@ -431,7 +433,7 @@ export function IntelligenceContent() {
           
           <div className="lg:col-span-8 space-y-8">
             
-            <Card className="glass border-white/5 p-8 relative overflow-hidden">
+            <SpotlightCard className="p-8 relative overflow-hidden">
               <div className="flex justify-between items-start mb-8 relative z-10">
                 <div>
                   <h2 className="text-xl font-bold flex items-center gap-2">
@@ -461,7 +463,7 @@ export function IntelligenceContent() {
                           <span>{r.region}</span>
                           <span className={r.risk === 'Critical' ? 'text-red-400' : 'text-primary'}>{r.risk}</span>
                         </div>
-                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-1.5 w-full rounded-full overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: `${r.value}%` }}
@@ -474,9 +476,9 @@ export function IntelligenceContent() {
                   </div>
                 </div>
               </div>
-            </Card>
+            </SpotlightCard>
 
-            <Card className="glass border-white/5 p-8">
+            <SpotlightCard className="p-8">
               <div className="flex justify-between items-start mb-8">
                 <div>
                   <h2 className="text-xl font-bold flex items-center gap-2">
@@ -521,13 +523,13 @@ export function IntelligenceContent() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </Card>
+            </SpotlightCard>
           </div>
 
           <div className="lg:col-span-4 space-y-8">
             
-            <Card className="glass border-white/5 overflow-hidden flex flex-col h-[500px]">
-              <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+            <SpotlightCard className="overflow-hidden flex flex-col h-[500px]">
+              <div className="p-6 border-b flex justify-between items-center">
                 <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                   <Activity className="w-4 h-4 text-forensic-green" />
                   Live Forensics
@@ -546,7 +548,7 @@ export function IntelligenceContent() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="p-4 rounded-xl border border-white/5 bg-white/5 flex flex-col gap-2"
+                        className="p-4 rounded-xl border flex flex-col gap-2"
                       >
                         <div className="flex justify-between items-center">
                           <span className="text-[10px] font-mono text-muted-foreground">ID: {scan.id}</span>
@@ -582,13 +584,13 @@ export function IntelligenceContent() {
                 <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black to-transparent pointer-events-none" />
               </div>
               <NextLink href="/analyze">
-                <Button variant="ghost" className="w-full text-xs text-muted-foreground hover:bg-white/5 h-10 border-t border-white/5 rounded-none">
+                <Button variant="ghost" className="w-full text-xs text-muted-foreground hover: h-10 border-t rounded-none">
                   Start New Analysis
                 </Button>
               </NextLink>
-            </Card>
+            </SpotlightCard>
 
-            <Card className="glass border-white/5 p-6">
+            <SpotlightCard className="p-6">
               <h3 className="text-sm font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
                 <BrainCircuit className="w-4 h-4 text-primary" />
                 Generator Index
@@ -609,9 +611,9 @@ export function IntelligenceContent() {
                   </div>
                 ))}
               </div>
-            </Card>
+            </SpotlightCard>
 
-            <Card className="glass border-white/5 p-6">
+            <SpotlightCard className="p-6">
               <h3 className="text-sm font-bold uppercase tracking-widest mb-6">Signature Accuracy</h3>
               <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -643,14 +645,14 @@ export function IntelligenceContent() {
                   </div>
                 ))}
               </div>
-            </Card>
+            </SpotlightCard>
 
           </div>
         </div>
 
         <div className="mt-12">
-          <Card className="glass border-white/5 overflow-hidden">
-            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+          <SpotlightCard className="overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
                 Critical Threat Feed
@@ -662,7 +664,7 @@ export function IntelligenceContent() {
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/5 text-[10px] text-muted-foreground uppercase tracking-widest">
+                  <tr className="border-b text-[10px] text-muted-foreground uppercase tracking-widest">
                     <th className="px-6 py-4 font-semibold">Incident ID</th>
                     <th className="px-6 py-4 font-semibold">Target Profile</th>
                     <th className="px-6 py-4 font-semibold">Signal Strength</th>
@@ -673,7 +675,7 @@ export function IntelligenceContent() {
                 <tbody className="divide-y divide-white/5">
                   {liveScans.filter(s => s.status === 'LIKELY MANIPULATED').length > 0 ? (
                     liveScans.filter(s => s.status === 'LIKELY MANIPULATED').map((scan, i) => (
-                      <tr key={i} className="group hover:bg-white/5 transition-colors">
+                      <tr key={i} className="group hover: transition-colors">
                         <td className="px-6 py-4 font-mono text-xs text-red-400">{scan.id}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
@@ -710,10 +712,10 @@ export function IntelligenceContent() {
                 </tbody>
               </table>
             </div>
-          </Card>
+          </SpotlightCard>
         </div>
 
-        <div className="mt-20 glass p-12 rounded-[3rem] text-center relative overflow-hidden group">
+        <div className="mt-20 p-12 rounded-[3rem] text-center relative overflow-hidden group">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
           <h2 className="text-3xl font-bold mb-4">Enterprise Forensic Monitoring</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
@@ -723,7 +725,7 @@ export function IntelligenceContent() {
             <Button size="lg" className="rounded-full px-8 h-auto py-4">
               Access API Documentation
             </Button>
-            <Button variant="outline" size="lg" className="rounded-full px-8 h-auto py-4 glass">
+            <Button variant="outline" size="lg" className="rounded-full px-8 h-auto py-4">
               Contact Security Team
             </Button>
           </div>

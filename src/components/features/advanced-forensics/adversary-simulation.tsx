@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Zap, Shield, AlertTriangle, RefreshCcw } from 'lucide-react';
@@ -25,7 +26,7 @@ export function AdversarySimulation({ baseConfidence }: AdversarySimulationProps
   const drift = baseConfidence - simulatedConfidence;
 
   return (
-    <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-6">
+    <SpotlightCard className="p-6 rounded-[2rem] space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-2">
           <Zap className="w-4 h-4 text-primary" />
@@ -84,7 +85,7 @@ export function AdversarySimulation({ baseConfidence }: AdversarySimulationProps
         </div>
       </div>
 
-      <div className="pt-4 border-t border-white/5 space-y-4">
+      <div className="pt-4 border-t space-y-4">
         <div className="flex items-center justify-between">
           <div className="text-[10px] font-bold uppercase text-muted-foreground">Simulated Confidence</div>
           <motion.div 
@@ -97,7 +98,7 @@ export function AdversarySimulation({ baseConfidence }: AdversarySimulationProps
           </motion.div>
         </div>
 
-        <div className="relative h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+        <div className="relative h-1.5 w-full rounded-full overflow-hidden">
           <motion.div 
             className="h-full bg-gradient-to-r from-forensic-red via-yellow-500 to-forensic-green"
             initial={{ width: `${baseConfidence}%` }}
@@ -111,13 +112,13 @@ export function AdversarySimulation({ baseConfidence }: AdversarySimulationProps
         </div>
 
         <div className="flex gap-2">
-          <div className="flex-1 p-2 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center justify-center gap-1">
+          <div className="flex-1 p-2 rounded-xl border flex flex-col items-center justify-center gap-1">
             <span className="text-[8px] text-muted-foreground uppercase">Confidence Delta</span>
             <span className={`text-xs font-mono font-bold ${drift > 10 ? 'text-forensic-red' : 'text-primary'}`}>
               -{drift.toFixed(1)}%
             </span>
           </div>
-          <div className="flex-1 p-2 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center justify-center gap-1">
+          <div className="flex-1 p-2 rounded-xl border flex flex-col items-center justify-center gap-1">
             <span className="text-[8px] text-muted-foreground uppercase">Stability Rating</span>
             <span className="text-xs font-mono font-bold text-forensic-green">
               {drift > 20 ? 'FRAGILE' : drift > 10 ? 'MODERATE' : 'STABLE'}
@@ -130,6 +131,6 @@ export function AdversarySimulation({ baseConfidence }: AdversarySimulationProps
           Simulated result. Actual media is not modified. Use this to gauge if current evidence is strong enough to survive re-encoding.
         </div>
       </div>
-    </Card>
+    </SpotlightCard>
   );
 }

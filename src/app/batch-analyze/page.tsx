@@ -7,6 +7,7 @@ import { ShaderAnimation } from '@/components/ui/shader-animation';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Shield, Upload, FileVideo, FileImage, X, AlertCircle, 
@@ -318,7 +319,7 @@ export default function BatchAnalyzePage() {
     <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center">
       <ShaderAnimation />
       
-      <nav className="fixed top-0 w-full z-50 px-6 py-4 flex items-center justify-between glass border-b-0 m-4 rounded-full max-w-7xl left-1/2 -translate-x-1/2">
+      <nav className="fixed top-0 w-full z-50 px-6 py-4 flex items-center justify-between border-b-0 m-4 rounded-full max-w-7xl left-1/2 -translate-x-1/2">
         <div className="flex items-center gap-4">
           <Link href="/analyze">
             <Button variant="ghost" size="icon" className="rounded-full">
@@ -339,7 +340,7 @@ export default function BatchAnalyzePage() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="rounded-full gap-2 glass"
+              className="rounded-full gap-2"
               onClick={exportBatchReport}
             >
               <Download className="w-4 h-4" />
@@ -358,7 +359,7 @@ export default function BatchAnalyzePage() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          <Card className="glass p-4 border-white/5 flex items-center gap-4">
+          <SpotlightCard className="p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
               <FolderOpen className="w-5 h-5" />
             </div>
@@ -366,8 +367,8 @@ export default function BatchAnalyzePage() {
               <div className="text-2xl font-bold">{files.length}</div>
               <div className="text-xs text-muted-foreground uppercase">Total Files</div>
             </div>
-          </Card>
-          <Card className="glass p-4 border-white/5 flex items-center gap-4">
+          </SpotlightCard>
+          <SpotlightCard className="p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-forensic-green/10 flex items-center justify-center text-forensic-green">
               <CheckCircle2 className="w-5 h-5" />
             </div>
@@ -375,8 +376,8 @@ export default function BatchAnalyzePage() {
               <div className="text-2xl font-bold">{completedCount}</div>
               <div className="text-xs text-muted-foreground uppercase">Completed</div>
             </div>
-          </Card>
-          <Card className="glass p-4 border-white/5 flex items-center gap-4">
+          </SpotlightCard>
+          <SpotlightCard className="p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center text-yellow-500">
               <Clock className="w-5 h-5" />
             </div>
@@ -384,12 +385,12 @@ export default function BatchAnalyzePage() {
               <div className="text-2xl font-bold">{pendingCount}</div>
               <div className="text-xs text-muted-foreground uppercase">Pending</div>
             </div>
-          </Card>
+          </SpotlightCard>
         </div>
 
         {isAnalyzing && (
           <div className="grid lg:grid-cols-3 gap-6 mb-8">
-            <Card className="lg:col-span-2 glass p-6 border-primary/20 relative overflow-hidden">
+            <SpotlightCard className="lg:col-span-2 p-6 border-primary/20 relative overflow-hidden">
                {/* Grid scanning effect bg */}
                <div className="absolute inset-0 opacity-10 pointer-events-none">
                  <div className="absolute inset-0 grid grid-cols-12 grid-rows-6">
@@ -430,7 +431,7 @@ export default function BatchAnalyzePage() {
                      <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-7 text-[10px] rounded-full gap-2 hover:bg-white/5"
+                      className="h-7 text-[10px] rounded-full gap-2 hover:"
                       onClick={togglePause}
                     >
                       {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
@@ -440,10 +441,10 @@ export default function BatchAnalyzePage() {
                   <Progress value={overallProgress} className="h-1.5 bg-primary/5" />
                 </div>
               </div>
-            </Card>
+            </SpotlightCard>
 
-            <Card className="glass p-4 border-white/5 bg-black/40 font-mono overflow-hidden">
-              <div className="text-[9px] text-primary/60 uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-white/5 pb-2">
+            <SpotlightCard className="p-4 bg-black/40 font-mono overflow-hidden">
+              <div className="text-[9px] text-primary/60 uppercase tracking-widest mb-3 flex items-center gap-2 border-b pb-2">
                 <Clock className="w-3 h-3" /> System Logs
               </div>
               <div className="space-y-1.5 h-32 overflow-hidden flex flex-col justify-end">
@@ -459,7 +460,7 @@ export default function BatchAnalyzePage() {
                   </motion.div>
                 ))}
               </div>
-            </Card>
+            </SpotlightCard>
           </div>
         )}
 
@@ -469,7 +470,7 @@ export default function BatchAnalyzePage() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <Card className="glass p-8 border-forensic-green/20 relative overflow-hidden">
+            <SpotlightCard className="p-8 border-forensic-green/20 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-8 opacity-5">
                 <CheckCircle2 className="w-24 h-24 text-forensic-green" />
               </div>
@@ -497,11 +498,11 @@ export default function BatchAnalyzePage() {
                   </div>
                 </div>
               </div>
-              <div className="mt-6 p-4 rounded-xl bg-white/5 border border-white/5 text-xs text-muted-foreground flex items-center gap-3">
+              <div className="mt-6 p-4 rounded-xl border text-xs text-muted-foreground flex items-center gap-3">
                 <Shield className="w-4 h-4 text-primary" />
                 This audit is cryptographically signed and stored in the DeepGuard forensic ledger.
               </div>
-            </Card>
+            </SpotlightCard>
           </motion.div>
         )}
 
@@ -537,8 +538,8 @@ export default function BatchAnalyzePage() {
         </div>
 
         {files.length > 0 && (
-          <Card className="glass border-white/5 overflow-hidden">
-            <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
+          <SpotlightCard className="overflow-hidden">
+            <div className="p-4 border-b flex items-center justify-between">
               <h3 className="font-bold text-sm uppercase tracking-wider">File Queue</h3>
               <div className="flex items-center gap-2">
                 {!isAnalyzing && pendingCount > 0 && (
@@ -571,9 +572,9 @@ export default function BatchAnalyzePage() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors"
+                    className="p-4 flex items-center gap-4 hover: transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-primary shrink-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-primary shrink-0">
                       {batchFile.file.type.startsWith('video') ? (
                         <FileVideo className="w-5 h-5" />
                       ) : (
@@ -640,12 +641,12 @@ export default function BatchAnalyzePage() {
                 ))}
               </AnimatePresence>
             </div>
-          </Card>
+          </SpotlightCard>
         )}
 
         {files.length === 0 && (
-          <Card className="glass p-8 border-white/5 text-center">
-            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 text-muted-foreground">
+          <SpotlightCard className="p-8 text-center">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground">
               <Layers className="w-8 h-8" />
             </div>
             <h3 className="font-bold mb-2">No Files in Queue</h3>
@@ -653,7 +654,7 @@ export default function BatchAnalyzePage() {
               Drag and drop multiple files above to start a batch forensic audit. 
               Each file will be analyzed sequentially with detailed reports.
             </p>
-          </Card>
+          </SpotlightCard>
         )}
       </main>
     </div>

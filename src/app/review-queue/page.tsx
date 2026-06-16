@@ -6,6 +6,7 @@ import { ShaderAnimation } from '@/components/ui/shader-animation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { 
   Shield, ArrowLeft, Search, Eye, ThumbsUp, ThumbsDown, 
   AlertCircle, Clock, CheckCircle2, RefreshCw, Database
@@ -256,7 +257,7 @@ export default function ReviewQueuePage() {
     <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center">
       <ShaderAnimation />
       
-      <nav className="fixed top-0 w-full z-50 px-6 py-4 flex items-center justify-between glass border-b-0 m-4 rounded-full max-w-7xl">
+      <nav className="fixed top-0 w-full z-50 px-6 py-4 flex items-center justify-between border-b-0 m-4 rounded-full max-w-7xl">
         <div className="flex items-center gap-4">
           <Link href="/">
             <Button variant="ghost" size="icon" className="rounded-full">
@@ -269,7 +270,7 @@ export default function ReviewQueuePage() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono px-3 py-1.5 rounded-full border">
             {isOfflineMode ? (
               <>
                 <Clock className="w-3 h-3 text-yellow-500 animate-pulse" />
@@ -300,29 +301,29 @@ export default function ReviewQueuePage() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="rounded-full gap-2 glass"
+              className="rounded-full gap-2"
               onClick={handleRefresh}
               disabled={refreshing}
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Card className="glass px-4 py-2 border-white/5 flex items-center gap-3">
+            <SpotlightCard className="px-4 py-2 flex items-center gap-3">
               <div className="text-xs font-mono text-muted-foreground uppercase">Pending</div>
               <div className="text-xl font-bold text-yellow-500">{stats.pending}</div>
-            </Card>
-            <Card className="glass px-4 py-2 border-white/5 flex items-center gap-3">
+            </SpotlightCard>
+            <SpotlightCard className="px-4 py-2 flex items-center gap-3">
               <div className="text-xs font-mono text-muted-foreground uppercase">Completed</div>
               <div className="text-xl font-bold text-forensic-green">{stats.completed}</div>
-            </Card>
+            </SpotlightCard>
           </div>
         </div>
 
-        <div className="glass rounded-[2rem] border-white/5 overflow-hidden">
+        <div className="rounded-[2rem] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/5 bg-white/5">
+                  <tr className="border-b">
                     <th className="px-6 py-4 text-xs font-mono text-muted-foreground uppercase">Media Artifact</th>
                     <th className="px-6 py-4 text-xs font-mono text-muted-foreground uppercase">AI Score</th>
                     <th className="px-6 py-4 text-xs font-mono text-muted-foreground uppercase">Consensus</th>
@@ -354,10 +355,10 @@ export default function ReviewQueuePage() {
                     </tr>
                   ) : (
                     items.map((item) => (
-                      <tr key={item.id} className="group hover:bg-white/5 transition-colors">
+                      <tr key={item.id} className="group hover: transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform relative">
+                            <div className="w-12 h-12 rounded-xl border border-white/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform relative">
                               <Search className="w-5 h-5" />
                               <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-black ${item.priority === 'High' ? 'bg-forensic-red' : item.priority === 'Medium' ? 'bg-yellow-500' : 'bg-blue-500'}`} />
                             </div>
@@ -371,7 +372,7 @@ export default function ReviewQueuePage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div className="w-16 h-1.5 rounded-full overflow-hidden">
                               <div 
                                 className="h-full bg-yellow-500" 
                                 style={{ width: `${item.score}%` }}
@@ -391,7 +392,7 @@ export default function ReviewQueuePage() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <Badge variant="outline" className="text-[9px] uppercase border-white/10 bg-white/5 font-mono">
+                          <Badge variant="outline" className="text-[9px] uppercase border-white/10 font-mono">
                             {item.conflictType}
                           </Badge>
                         </td>
@@ -430,7 +431,7 @@ export default function ReviewQueuePage() {
           </div>
         </div>
 
-        <div className="mt-12 p-6 glass rounded-[2rem] border-white/5 flex items-start gap-4">
+        <div className="mt-12 p-6 rounded-[2rem] flex items-start gap-4">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
             <AlertCircle className="w-5 h-5" />
           </div>

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Microscope, Info, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrambleText } from '@/components/ui/scramble-text';
@@ -13,8 +14,8 @@ import { cn } from '@/lib/utils';
 
 // DeepGuard Motion Language tokens
 const MOTION = {
-  easeOutSoft: [0.16, 1, 0.3, 1] as const,
-  easeData: [0.22, 1, 0.36, 1] as const,
+  easeOutSoft: [0.16, 1, 0.3, 1] as [number, number, number, number],
+  easeData: [0.22, 1, 0.36, 1] as [number, number, number, number],
   durationReveal: 0.62,
   durationConfidenceBuild: 0.62,
 };
@@ -78,7 +79,7 @@ export function FuturisticVerdictHeader({
   const getTransition = (delay: number = 0) => ({
     duration: prefersReducedMotion ? 0.2 : MOTION.durationReveal,
     delay: prefersReducedMotion ? 0 : delay,
-    ease: prefersReducedMotion ? 'easeOut' : MOTION.easeOutSoft,
+    ease: prefersReducedMotion ? ("easeOut" as const) : MOTION.easeOutSoft,
   });
 
   // SVG circle progress calculation
@@ -94,7 +95,7 @@ export function FuturisticVerdictHeader({
         transition={getTransition(0)}
         className="w-full mb-8"
       >
-        <Card className="relative overflow-hidden glass border-white/5 rounded-[2rem] p-8 md:p-10 shadow-2xl">
+        <SpotlightCard className="relative overflow-hidden rounded-[2rem] p-8 md:p-10 shadow-2xl">
           {/* Substrate Grid and Glowing Orbs */}
           <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
             <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
@@ -123,7 +124,7 @@ export function FuturisticVerdictHeader({
                 className="flex items-center gap-3"
               >
                 <motion.div 
-                  className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-primary/80 border border-white/10"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-primary/80 border border-white/10"
                   animate={prefersReducedMotion ? {} : { scale: [1, 1.02, 1] }}
                   transition={{ duration: 4, repeat: Infinity }}
                 >
@@ -157,7 +158,7 @@ export function FuturisticVerdictHeader({
                       </div>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent className="glass border-white/10 max-w-xs">
+                  <TooltipContent className="border-white/10 max-w-xs">
                     <p className="text-[10px] leading-relaxed">
                       Based on synthetic lighting gradients, texture smoothness, and compositional regularity analysis.
                     </p>
@@ -267,7 +268,7 @@ export function FuturisticVerdictHeader({
                   
                   {/* Real-time Forensic Signal Breakdown */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 group/signal relative overflow-hidden">
+                    <div className="p-3 rounded-xl border border-white/10 group/signal relative overflow-hidden">
                       <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/signal:opacity-100 transition-opacity" />
                       <div className="text-[9px] font-mono text-muted-foreground uppercase mb-2 flex justify-between items-center">
                         GAN_TEXTURE_RESIDUALS
@@ -285,7 +286,7 @@ export function FuturisticVerdictHeader({
                         </div>
                       </div>
                     </div>
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 group/signal relative overflow-hidden">
+                    <div className="p-3 rounded-xl border border-white/10 group/signal relative overflow-hidden">
                       <div className="absolute inset-0 bg-blue-400/5 opacity-0 group-hover/signal:opacity-100 transition-opacity" />
                       <div className="text-[9px] font-mono text-muted-foreground uppercase mb-2 flex justify-between items-center">
                         SPECTRAL_ANOMALY_INDEX
@@ -317,7 +318,7 @@ export function FuturisticVerdictHeader({
               </div>
             </motion.div>
           </div>
-        </Card>
+        </SpotlightCard>
       </motion.div>
     </TooltipProvider>
   );

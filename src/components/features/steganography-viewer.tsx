@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
@@ -31,9 +32,10 @@ import { extractBitPlane, analyzeLSBEntropy, detectStegoClusters } from '@/lib/s
 interface SteganographyViewerProps {
   imageSrc: string;
   onAnalysisResult?: (result: any) => void;
+  demoString?: string;
 }
 
-export function SteganographyViewer({ imageSrc, onAnalysisResult }: SteganographyViewerProps) {
+export function SteganographyViewer({ imageSrc, onAnalysisResult, demoString }: SteganographyViewerProps) {
   const [currentBit, setCurrentBit] = useState(0); // 0 = LSB, 7 = MSB
   const [isProcessing, setIsProcessing] = useState(false);
   const [lsbEntropy, setLsbEntropy] = useState<number | null>(null);
@@ -98,7 +100,7 @@ export function SteganographyViewer({ imageSrc, onAnalysisResult }: Steganograph
     : 'PENDING';
 
   return (
-    <Card className="glass rounded-[2rem] border-white/5 overflow-hidden">
+    <SpotlightCard className="overflow-hidden p-0">
       <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -124,19 +126,28 @@ export function SteganographyViewer({ imageSrc, onAnalysisResult }: Steganograph
       </div>
 
       <div className="grid lg:grid-cols-3 gap-0">
-        {/* Main Viewer Area */}
-        <div className="lg:col-span-2 p-4 bg-zinc-950/50 relative overflow-hidden flex items-center justify-center min-h-[400px]">
+         {/* Main Viewer Area */}
+        <div className="lg:col-span-2 p-6 bg-[#0a0a0a] relative overflow-hidden flex items-center justify-center min-h-[400px]">
            {/* Visual Grid */}
-           <div className="absolute inset-0 grid grid-cols-12 grid-rows-8 opacity-5 pointer-events-none">
+           <div className="absolute inset-0 grid grid-cols-12 grid-rows-8 opacity-[0.03] pointer-events-none">
             {Array.from({ length: 96 }).map((_, i) => (
-              <div key={i} className="border border-white/20" />
+              <div key={i} className="border border-white" />
             ))}
           </div>
 
-          <div className="relative group">
+          <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent pointer-events-none" />
+
+          <div className="relative group p-1 glass border-white/5 rounded-xl shadow-2xl">
+            <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none z-20">
+              <motion.div 
+                animate={{ top: ['-10%', '110%'] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                className="absolute left-0 right-0 h-1 bg-primary shadow-[0_0_15px_rgba(0,255,255,0.8)] opacity-50"
+              />
+            </div>
             <canvas 
               ref={canvasRef} 
-              className="max-w-full h-auto rounded-lg shadow-2xl transition-all duration-300"
+              className="max-w-full h-auto rounded-lg shadow-2xl transition-all duration-300 relative z-10"
               style={{ filter: `contrast(${1.2 + (7 - currentBit) * 0.1})` }}
             />
             
@@ -144,16 +155,19 @@ export function SteganographyViewer({ imageSrc, onAnalysisResult }: Steganograph
             {showAnomalies && anomalies.map((region, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.4 }}
-                className="absolute border border-forensic-red bg-forensic-red/10"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 0.6, scale: 1 }}
+                className="absolute border-2 border-forensic-red bg-forensic-red/20 z-30"
                 style={{
                   left: `${region.x}%`,
                   top: `${region.y}%`,
                   width: `${region.width}%`,
                   height: `${region.height}%`,
                 }}
-              />
+              >
+                <div className="absolute -top-1 -left-1 w-2 h-2 border-t border-l border-white" />
+                <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b border-r border-white" />
+              </motion.div>
             ))}
           </div>
 
@@ -199,6 +213,30 @@ export function SteganographyViewer({ imageSrc, onAnalysisResult }: Steganograph
           </div>
 
           <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                LSB Steganography Scanner
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-[300px] p-3">
+                      <p className="text-xs leading-relaxed">
+                        Analyzes the Least Significant Bits (LSB) of the image's color channels. 
+                        Adversaries often use the 0th and 1st bits to hide payloads or tracking watermarks.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </h3>
+              {demoString && (
+                <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20 text-[10px]">
+                  {demoString}
+                </Badge>
+              )}
+            </div>
+            
             <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground uppercase tracking-widest bg-white/5 p-2 rounded-lg">
               <span>Investigative Findings</span>
               <ShieldAlert className="w-3 h-3 text-primary" />
@@ -244,6 +282,6 @@ export function SteganographyViewer({ imageSrc, onAnalysisResult }: Steganograph
           </div>
         </div>
       </div>
-    </Card>
+    </SpotlightCard>
   );
 }

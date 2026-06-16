@@ -297,7 +297,7 @@ export async function parseC2PAFromBuffer(
     let claimGenerator: string | undefined;
     
     if (activeManifest.claim) {
-      const claim = activeManifest.claim as Record<string, unknown>;
+      const claim = activeManifest.claim as unknown as Record<string, unknown>;
       claimGenerator = claim.claim_generator as string | undefined;
       creationDate = claim.signature_time as string | undefined;
     }

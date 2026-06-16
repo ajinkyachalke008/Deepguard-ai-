@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
+import { SpotlightCard } from '@/components/ui/spotlight-card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Users, 
@@ -35,7 +36,7 @@ export function AudienceExplanations({ explanations }: AudienceExplanationsProps
   ];
 
   return (
-    <Card className="glass p-6 rounded-[2rem] border-white/5 space-y-4">
+    <SpotlightCard className="p-6 rounded-[2rem] space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-2">
           <Users className="w-4 h-4 text-primary" />
@@ -49,10 +50,10 @@ export function AudienceExplanations({ explanations }: AudienceExplanationsProps
       <div className="flex items-center gap-3">
         <span className="text-[10px] font-bold uppercase text-muted-foreground whitespace-nowrap">Explain to:</span>
         <Select value={selectedAudience} onValueChange={setSelectedAudience}>
-          <SelectTrigger className="h-8 glass border-white/10 rounded-xl text-[11px] focus:ring-primary/20">
+          <SelectTrigger className="h-8 border-white/10 rounded-xl text-[11px] focus:ring-primary/20">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="glass border-white/10 rounded-xl overflow-hidden">
+          <SelectContent className="border-white/10 rounded-xl overflow-hidden">
             {audiences.map((aud) => (
               <SelectItem key={aud.id} value={aud.id} className="text-[11px] focus:bg-primary/10 focus:text-primary">
                 <div className="flex items-center gap-2">
@@ -65,7 +66,7 @@ export function AudienceExplanations({ explanations }: AudienceExplanationsProps
         </Select>
       </div>
 
-      <div className="relative min-h-[80px] p-4 rounded-2xl bg-white/5 border border-white/5 overflow-hidden">
+      <div className="relative min-h-[80px] p-4 border overflow-hidden">
         <div className="absolute top-2 right-2 opacity-10">
           <MessageSquareText className="w-12 h-12" />
         </div>
@@ -87,6 +88,6 @@ export function AudienceExplanations({ explanations }: AudienceExplanationsProps
       <p className="text-[10px] text-muted-foreground/50 italic leading-tight">
         Explanations are contextually re-worded for clarity without altering the underlying forensic data.
       </p>
-    </Card>
+    </SpotlightCard>
   );
 }
