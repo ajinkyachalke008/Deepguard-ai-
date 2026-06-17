@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   const enableRemoteScripts = process.env.NEXT_PUBLIC_ENABLE_REMOTE_SCRIPTS === "true";
   const safeTargetOrigin =
-    process.env.NEXT_PUBLIC_ROUTE_MESSAGE_TARGET_ORIGIN || "https://deepguard-ai.vercel.app";
+    process.env.NEXT_PUBLIC_ROUTE_MESSAGE_TARGET_ORIGIN || "https://deepguard-ai-pi.vercel.app";
   return (
     <html lang="en">
       <body className="antialiased">
