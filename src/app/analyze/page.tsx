@@ -547,9 +547,9 @@ export default function AnalyzePage() {
           <motion.div 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
-            className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"
+            className="w-8 h-8 flex items-center justify-center overflow-hidden"
           >
-            <Shield className="text-black w-5 h-5" />
+            <img src="/logo.png" alt="DeepGuard Logo" className="w-full h-full object-contain" />
           </motion.div>
           <span className="font-bold tracking-tight text-xl">DeepGuard AI</span>
         </div>

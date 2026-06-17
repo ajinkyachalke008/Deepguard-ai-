@@ -46,8 +46,8 @@ export default function Home() {
           <header className="flex justify-center w-full mb-12">
             <div className="flex items-center justify-between w-full max-w-5xl rounded-full border border-gray-700 bg-black/20 backdrop-blur-md px-6 py-3">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
+                <div className="w-8 h-8 flex items-center justify-center overflow-hidden">
+                  <img src="/logo.png" alt="DeepGuard Logo" className="w-full h-full object-contain" />
                 </div>
                 <span className="font-semibold text-lg tracking-wide">DeepGuard</span>
               </div>
@@ -123,8 +123,8 @@ export default function Home() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center">
-                    <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
+                  <div className="w-8 h-8 flex items-center justify-center overflow-hidden">
+                    <img src="/logo.png" alt="DeepGuard Logo" className="w-full h-full object-contain" />
                   </div>
                 </div>
                 <button 
@@ -205,8 +205,8 @@ export default function Home() {
       <footer className="relative z-10 w-full py-12 px-6 border-t border-white/5 mt-auto bg-black/40 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#64CEFB]/10 rounded-xl flex items-center justify-center border border-[#64CEFB]/20">
-              <Shield className="text-[#64CEFB] w-6 h-6" />
+            <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
+              <img src="/logo.png" alt="DeepGuard Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
               <span className="font-bold tracking-tight text-lg text-white">DeepGuard AI</span>
